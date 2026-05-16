@@ -52,7 +52,7 @@ final driverRouterProvider = Provider<GoRouter>((ref) {
 
       // If not authenticated -> go to login
       if (isUnauth) {
-        return currentPath == '/login' ? null : '/login';
+        return isPublicRoute ? null : '/login';
       }
 
       // If authenticated and on public route -> home
@@ -165,3 +165,4 @@ class _DriverNotificationScreenState extends ConsumerState<_DriverNotificationSc
     );
   }
 }
+

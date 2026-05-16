@@ -50,9 +50,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return '/splash';
       }
 
-      // If not authenticated -> go to login (even from splash)
+      // If not authenticated -> allow login and register, redirect everything else
       if (isUnauth) {
-        return currentPath == '/login' ? null : '/login';
+        return isPublicRoute ? null : '/login';
       }
 
       // If authenticated and on a public route -> redirect to home
@@ -274,3 +274,4 @@ class _RatingScreenWrapperState extends ConsumerState<_RatingScreenWrapper> {
     return RatingScreen(trip: _trip!);
   }
 }
+
