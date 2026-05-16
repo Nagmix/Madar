@@ -2,6 +2,42 @@ import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 
+// DTOs - must be defined before the controller class
+class RegisterDto {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  countryCode?: string;
+  fcmToken?: string;
+}
+
+class LoginDto {
+  email: string;
+  password: string;
+  fcmToken?: string;
+  deviceId?: string;
+}
+
+class SendOtpDto {
+  phone: string;
+  countryCode: string;
+}
+
+class VerifyOtpDto {
+  phone: string;
+  otp: string;
+  fcmToken?: string;
+}
+
+class RefreshTokenDto {
+  refreshToken: string;
+}
+
+class ForgotPasswordDto {
+  email: string;
+}
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -56,40 +92,4 @@ export class AuthController {
     // Token invalidation handled on client side
     return { message: 'Logged out successfully' };
   }
-}
-
-// DTOs
-class RegisterDto {
-  name: string;
-  email: string;
-  password: string;
-  phone?: string;
-  countryCode?: string;
-  fcmToken?: string;
-}
-
-class LoginDto {
-  email: string;
-  password: string;
-  fcmToken?: string;
-  deviceId?: string;
-}
-
-class SendOtpDto {
-  phone: string;
-  countryCode: string;
-}
-
-class VerifyOtpDto {
-  phone: string;
-  otp: string;
-  fcmToken?: string;
-}
-
-class RefreshTokenDto {
-  refreshToken: string;
-}
-
-class ForgotPasswordDto {
-  email: string;
 }
