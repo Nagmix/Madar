@@ -810,7 +810,7 @@ export class AnalyticsService {
         tripCount: Number(z.trip_count),
         totalSurgeRevenue: Number(z.total_surge_revenue),
       })),
-      multiplierDistribution: multiplierDistribution.map((m) => ({
+      multiplierDistribution: surgeMultiplierDistribution.map((m) => ({
         range: m.multiplier_range,
         count: Number(m.count),
       })),

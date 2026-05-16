@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { Prisma } from '@prisma/client';
 
 /// Dispatch Service - Finds and assigns drivers to trips
 /// Uses PostGIS for geospatial queries + Redis for real-time driver tracking
@@ -35,7 +36,7 @@ export class DispatchService {
           ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
           ${radiusKm * 1000}
         )
-        ${vehicleType ? PrismaService.sql`AND v.type = ${vehicleType}::"VehicleType"` : PrismaService.sql``}
+        ${vehicleType ? Prisma.sql`AND v.type = ${vehicleType}::"VehicleType"` : Prisma.sql``}
       ORDER BY distance_meters ASC
       LIMIT 20
     `;

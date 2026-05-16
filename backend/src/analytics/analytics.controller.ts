@@ -137,7 +137,7 @@ export class AnalyticsController {
     @Query('period') period: string = 'month',
     @Query('vehicleType') vehicleType?: VehicleType,
     @Query('zoneId') zoneId?: string,
-    @Res() res: Response,
+    @Res() res?: Response,
   ) {
     const csv = await this.analyticsService.exportTripsCsv(period, { vehicleType, zoneId });
     res.setHeader('Content-Type', 'text/csv');
