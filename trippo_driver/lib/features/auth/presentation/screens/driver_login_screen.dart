@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../../core/constants/app_theme.dart';
+import '../../../../core/network/nestjs_api_client.dart';
 import '../notifiers/driver_auth_notifier.dart';
 
 /// Driver Login Screen - Professional login for Trippo Driver

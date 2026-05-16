@@ -105,9 +105,9 @@ class _DriverProfileScreenState extends ConsumerState<DriverProfileScreen> {
           if (driver.vehicle != null) {
             _vehicleNameController.text = driver.vehicle!.name;
             _plateNumberController.text = driver.vehicle!.plateNumber;
-            _vehicleColorController.text = driver.vehicle!.color;
-            _vehicleModelController.text = driver.vehicle!.model;
-            _vehicleYearController.text = driver.vehicle!.year?.toString() ?? '';
+            _vehicleColorController.text = driver.vehicle!.color ?? '';
+            _vehicleModelController.text = driver.vehicle!.model ?? '';
+            _vehicleYearController.text = driver.vehicle!.year ?? '';
           }
         });
       }
@@ -519,18 +519,18 @@ class _DriverProfileScreenState extends ConsumerState<DriverProfileScreen> {
               _buildVehicleDetailRow(
                 Icons.category_outlined,
                 'Type',
-                vehicle.type.toUpperCase(),
+                vehicle.type.name.toUpperCase(),
               ),
               _buildVehicleDetailRow(
                 Icons.palette_outlined,
                 'Color',
-                vehicle.color,
+                vehicle.color ?? 'N/A',
               ),
-              if (vehicle.model.isNotEmpty)
+              if (vehicle.model != null && vehicle.model!.isNotEmpty)
                 _buildVehicleDetailRow(
                   Icons.build_outlined,
                   'Model',
-                  vehicle.model,
+                  vehicle.model!,
                 ),
             ] else ...[
               Text(

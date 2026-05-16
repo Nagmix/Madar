@@ -492,7 +492,7 @@ class NestjsApiClient {
 
   /// Search places - NestJS Geo Module (proxies Google Places)
   /// GET /geo/places
-  Future<List<PredictedPlaces>> searchPlaces({
+  Future<List<LocationModel>> searchPlaces({
     required String query,
     required double latitude,
     required double longitude,
@@ -508,7 +508,7 @@ class NestjsApiClient {
       },
     );
     final items = response.data as List<dynamic>;
-    return items.map((e) => PredictedPlaces.fromJson(e as Map<String, dynamic>)).toList();
+    return items.map((e) => LocationModel.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   /// Get service areas - NestJS Geo Module (PostGIS)
@@ -578,6 +578,20 @@ class NestjsApiClient {
     await _secureStorage.saveUserEmail(authResponse.user.email);
     await _secureStorage.saveUserName(authResponse.user.name);
   }
+}
+
+// ==================== Validation Error ====================
+
+/// Validation error from NestJS backend
+/// Maps to NestJS validation pipe error format
+class ValidationError {
+  final String message;
+  final Map<String, String> fieldErrors;
+
+  const ValidationError({required this.message, this.fieldErrors = const {}});
+
+  @override
+  String toString() => 'ValidationError: $message';
 }
 
 // ==================== Auth Interceptor ====================

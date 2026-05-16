@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trippo_shared/trippo_shared.dart';
-import '../../../core/app_providers.dart';
-import '../../../core/network/nestjs_api_client.dart';
-import '../../auth/presentation/notifiers/driver_auth_notifier.dart';
+import '../../../../core/app_providers.dart';
+import '../../../../core/network/nestjs_api_client.dart';
+import '../../../auth/presentation/notifiers/driver_auth_notifier.dart';
 
 /// Dispatch State
 class DispatchState {

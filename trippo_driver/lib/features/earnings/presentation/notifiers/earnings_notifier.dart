@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trippo_shared/trippo_shared.dart';
-import '../../../core/app_providers.dart';
-import '../../../core/network/nestjs_api_client.dart';
+import '../../../../core/app_providers.dart';
+import '../../../../core/network/nestjs_api_client.dart';
 
 /// Earnings Period
 enum EarningsPeriod { today, week, month, custom }

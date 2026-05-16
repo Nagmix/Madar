@@ -265,8 +265,8 @@ class _DriverTripHistoryScreenState
   // ==================== Trip Card ====================
 
   Widget _buildTripCard(TripSummary trip) {
-    final isCompleted = trip.status == 'completed';
-    final isCancelled = trip.status == 'cancelled';
+    final isCompleted = trip.state == TripState.tripCompleted;
+    final isCancelled = trip.state == TripState.tripCancelled;
 
     return Card(
       child: InkWell(
@@ -289,15 +289,15 @@ class _DriverTripHistoryScreenState
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(trip.status).withOpacity(0.1),
+                      color: _getStatusColor(trip.state.name).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      trip.status.toUpperCase(),
+                      trip.state.name.toUpperCase(),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: _getStatusColor(trip.status),
+                        color: _getStatusColor(trip.state.name),
                       ),
                     ),
                   ),
@@ -376,7 +376,7 @@ class _DriverTripHistoryScreenState
                       children: [
                         Text('Fare', style: AppTheme.bodySmall),
                         Text(
-                          '\$${trip.totalFare.toStringAsFixed(2)}',
+                          '\$${trip.fare.toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
@@ -387,32 +387,15 @@ class _DriverTripHistoryScreenState
                     ),
                   ),
 
-                  // Commission deducted
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Commission', style: AppTheme.bodySmall),
-                        Text(
-                          '-\$${trip.commission.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.error,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Rider name
-                  if (trip.riderName != null)
+                  // Driver name
+                  if (trip.driverName != null)
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Rider', style: AppTheme.bodySmall),
+                          Text('Driver', style: AppTheme.bodySmall),
                           Text(
-                            trip.riderName!,
+                            trip.driverName!,
                             style: AppTheme.bodyMedium.copyWith(
                               fontWeight: FontWeight.w500,
                             ),
@@ -569,9 +552,9 @@ class _DriverTripHistoryScreenState
 
   Color _getStatusColor(String status) {
     return switch (status) {
-      'completed' => AppTheme.success,
-      'cancelled' => AppTheme.error,
-      'in_progress' => AppTheme.info,
+      'tripCompleted' => AppTheme.success,
+      'tripCancelled' => AppTheme.error,
+      'tripStarted' => AppTheme.info,
       _ => Colors.grey,
     };
   }

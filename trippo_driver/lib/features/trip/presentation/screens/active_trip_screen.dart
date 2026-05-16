@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../../core/constants/app_theme.dart';
 import '../../../../core/network/nestjs_api_client.dart';
-import '../../trip/presentation/notifiers/driver_trip_notifier.dart';
+import '../notifiers/driver_trip_notifier.dart';
 import '../../../home/services/background_location_service.dart';
 
 /// Active Trip Navigation Screen - Enhanced driver navigation during trip

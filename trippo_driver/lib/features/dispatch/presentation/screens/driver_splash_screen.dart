@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../../core/constants/app_theme.dart';
-import '../../auth/presentation/notifiers/driver_auth_notifier.dart';
+import '../../../auth/presentation/notifiers/driver_auth_notifier.dart';
 
 /// Driver Splash Screen - Professional splash screen for Trippo Driver
 ///
