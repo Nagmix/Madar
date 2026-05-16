@@ -2,12 +2,13 @@
 // PostgreSQL + PostGIS
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
   extensions = [postgis]
 }
 
@@ -46,7 +47,7 @@ model User {
   driver    Driver?
   tripsAsRider Trip[]    @relation("RiderTrips")
   wallet    Wallet?
-  notifications Notification[]
+  notifications Notification[]  @relation("UserNotifications")
   deviceTokens DeviceToken[]
 
   @@map("users")
@@ -93,7 +94,7 @@ model Driver {
 model Vehicle {
   id          String   @id @default(uuid())
   driverId    String   @unique
-  driver      Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  driver      Driver   @relation(fields: [driverId], references: [id])
   name        String
   plateNumber String
   type        VehicleType
@@ -235,7 +236,7 @@ model Trip {
   
   // Relations
   stateLog              TripStateLog[]
-  transactions          WalletTransaction[]
+  transactions          WalletTransaction[] @relation("TripTransactions")
   
   @@index([riderId])
   @@index([driverId])
@@ -320,6 +321,7 @@ model WalletTransaction {
   currency      String           @default("USD")
   description   String
   tripId        String?
+  trip          Trip?           @relation("TripTransactions", fields: [tripId], references: [id])
   referenceId   String?
   status        TransactionStatus @default(COMPLETED)
   createdAt     DateTime         @default(now())
@@ -425,6 +427,7 @@ enum NotificationStatus {
 model Notification {
   id          String             @id @default(uuid())
   userId      String
+  user        User               @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
   title       String
   body        String
   type        NotificationType
