@@ -38,7 +38,7 @@ dependencies:
   # Auth - Firebase only for push notifications, not core backend
   firebase_core: ^2.24.2
   firebase_messaging: ^14.7.9
-  flutter_local_notifications: ^15.1.1
+  flutter_local_notifications: ^17.2.4
 
   # Storage & Security
   flutter_secure_storage: ^9.0.0
