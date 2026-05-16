@@ -1,3 +1,4 @@
+
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { IsString, IsEmail, IsOptional, MinLength, IsIn } from 'class-validator';
@@ -12,7 +13,7 @@ class RegisterDto {
   email: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(6)
   password: string;
 
   @IsOptional()
@@ -25,7 +26,7 @@ class RegisterDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['RIDER', 'DRIVER'])
+  @IsIn(['RIDER', 'DRIVER', 'rider', 'driver'])
   role?: string;
 
   @IsOptional()
@@ -88,7 +89,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Register new user or driver' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+    // Normalize role to uppercase before passing to service
+    const normalizedDto = {
+      ...dto,
+      role: dto.role ? dto.role.toUpperCase() : undefined,
+    };
+    return this.authService.register(normalizedDto);
   }
 
   @Post('login')
@@ -133,3 +139,4 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 }
+

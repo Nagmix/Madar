@@ -97,7 +97,7 @@ class NestjsApiClient {
         'phone': phone,
         'countryCode': countryCode,
         'fcmToken': fcmToken,
-        'role': 'driver',
+        'role': 'DRIVER',
       },
     );
     final authResponse = AuthResponse.fromJson(response.data);

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../../core/app_providers.dart';
@@ -34,6 +35,69 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final Ref _ref;
 
   AuthNotifier(this._ref) : super(const AuthState());
+
+  /// Extract clean error message from DioException or other errors
+  String _extractError(dynamic error) {
+    if (error is DioException) {
+      final response = error.response;
+      if (response != null && response.data != null) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          // Try to get the server error message
+          final message = data['message'] ?? data['error'];
+          if (message is String) {
+            return _cleanServerMessage(message);
+          }
+          if (message is List && message.isNotEmpty) {
+            return _cleanServerMessage(message.first.toString());
+          }
+        }
+        if (data is String) {
+          return _cleanServerMessage(data);
+        }
+      }
+      // Fallback based on DioException type
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return 'Connection timed out. Please try again.';
+        case DioExceptionType.connectionError:
+          return 'Cannot connect to server. Please check your internet connection.';
+        case DioExceptionType.badResponse:
+          final statusCode = response?.statusCode;
+          if (statusCode == 401) return 'Invalid email or password';
+          if (statusCode == 409) return 'This email is already registered';
+          if (statusCode == 400) return 'Invalid request. Please check your input.';
+          if (statusCode != null && statusCode >= 500) return 'Server error. Please try again later.';
+          return 'Something went wrong. Please try again.';
+        default:
+          return 'Network error. Please try again.';
+      }
+    }
+    
+    // Handle type errors (JSON parsing failures)
+    final errorStr = error.toString();
+    if (errorStr.contains('type') && errorStr.contains('is not a subtype')) {
+      return 'Server response error. Please try again.';
+    }
+    
+    return _cleanServerMessage(errorStr);
+  }
+  
+  String _cleanServerMessage(String msg) {
+    if (msg.contains('Invalid credentials')) return 'Invalid email or password';
+    if (msg.contains('Email already registered')) return 'This email is already registered. Try logging in instead.';
+    if (msg.contains('SocketException') || msg.contains('Connection refused')) return 'Cannot connect to server. Please check your internet connection.';
+    if (msg.contains('connection error') || msg.contains('Software caused connection abort')) return 'Network error. Please check your internet connection and try again.';
+    if (msg.contains('timeout')) return 'Connection timed out. Please try again.';
+    // Remove technical prefixes
+    return msg
+        .replaceAll('Exception: ', '')
+        .replaceAll('DioException ', '')
+        .replaceAll(RegExp(r'\[bad response\]:.*'), '')
+        .trim();
+  }
 
   /// Login with email/password
   Future<void> login({
@@ -79,10 +143,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: authResponse.user,
       );
     } catch (e) {
-      String errorMsg = _cleanError(e.toString());
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
-        error: errorMsg,
+        error: _extractError(e),
       );
     }
   }
@@ -133,10 +196,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: authResponse.user,
       );
     } catch (e) {
-      String errorMsg = _cleanError(e.toString());
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
-        error: errorMsg,
+        error: _extractError(e),
       );
     }
   }
@@ -183,22 +245,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = const AuthState(status: AuthStatus.unauthenticated);
     }
   }
-
-  /// Clean up error messages for display
-  String _cleanError(String error) {
-    if (error.contains('Invalid credentials')) {
-      return 'Invalid email or password';
-    } else if (error.contains('SocketException') || error.contains('Connection refused')) {
-      return 'Cannot connect to server. Please check your internet connection.';
-    } else if (error.contains('Email already registered')) {
-      return 'This email is already registered. Try logging in instead.';
-    } else if (error.contains('connection error') || error.contains('Software caused connection abort')) {
-      return 'Network error. Please check your internet connection and try again.';
-    } else if (error.contains('timeout')) {
-      return 'Connection timed out. Please try again.';
-    }
-    return error.replaceAll('Exception: ', '').replaceAll('DioException ', '');
-  }
 }
 
 /// Auth Provider
@@ -211,3 +257,4 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   final authState = ref.watch(authProvider);
   return authState.status == AuthStatus.authenticated;
 });
+

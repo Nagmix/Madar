@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../notifiers/auth_notifier.dart';
 import '../../../../core/constants/app_theme.dart';
 
@@ -182,14 +183,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 
                 const SizedBox(height: 40),
                 
-                // Register link
+                // Register link - FIXED: Now navigates to register screen
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text("Don't have an account?", style: TextStyle(color: Colors.grey[600])),
                     TextButton(
                       onPressed: () {
-                        // Navigate to register
+                        context.go('/register');
                       },
                       child: const Text('Sign Up'),
                     ),
@@ -212,3 +213,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
+

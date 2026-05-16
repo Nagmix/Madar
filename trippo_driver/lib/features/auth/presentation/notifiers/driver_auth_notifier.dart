@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../../core/app_providers.dart';
@@ -38,6 +39,65 @@ class DriverAuthNotifier extends StateNotifier<DriverAuthState> {
 
   DriverAuthNotifier(this._ref) : super(const DriverAuthState());
 
+  /// Extract clean error message from DioException or other errors
+  String _extractError(dynamic error) {
+    if (error is DioException) {
+      final response = error.response;
+      if (response != null && response.data != null) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          final message = data['message'] ?? data['error'];
+          if (message is String) {
+            return _cleanServerMessage(message);
+          }
+          if (message is List && message.isNotEmpty) {
+            return _cleanServerMessage(message.first.toString());
+          }
+        }
+        if (data is String) {
+          return _cleanServerMessage(data);
+        }
+      }
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return 'Connection timed out. Please try again.';
+        case DioExceptionType.connectionError:
+          return 'Cannot connect to server. Please check your internet connection.';
+        case DioExceptionType.badResponse:
+          final statusCode = response?.statusCode;
+          if (statusCode == 401) return 'Invalid email or password';
+          if (statusCode == 409) return 'This email is already registered. Try logging in instead.';
+          if (statusCode == 400) return 'Invalid request. Please check your input.';
+          if (statusCode != null && statusCode >= 500) return 'Server error. Please try again later.';
+          return 'Something went wrong. Please try again.';
+        default:
+          return 'Network error. Please try again.';
+      }
+    }
+    
+    final errorStr = error.toString();
+    if (errorStr.contains('type') && errorStr.contains('is not a subtype')) {
+      return 'Server response error. Please try again.';
+    }
+    
+    return _cleanServerMessage(errorStr);
+  }
+  
+  String _cleanServerMessage(String msg) {
+    if (msg.contains('Invalid credentials')) return 'Invalid email or password';
+    if (msg.contains('Email already registered')) return 'This email is already registered. Try logging in instead.';
+    if (msg.contains('SocketException') || msg.contains('Connection refused')) return 'Cannot connect to server. Please check your internet connection.';
+    if (msg.contains('connection error') || msg.contains('Software caused connection abort')) return 'Network error. Please check your internet connection and try again.';
+    if (msg.contains('timeout')) return 'Connection timed out. Please try again.';
+    return msg
+        .replaceAll('Exception: ', '')
+        .replaceAll('DioException ', '')
+        .replaceAll(RegExp(r'\[bad response\]:.*'), '')
+        .trim();
+  }
+
   /// Login with email/password - POST /auth/login
   Future<void> login({
     required String email,
@@ -76,21 +136,14 @@ class DriverAuthNotifier extends StateNotifier<DriverAuthState> {
         status: DriverAuthStatus.authenticated,
       );
     } catch (e) {
-      String errorMsg = e.toString();
-      // Clean up error message for display
-      if (errorMsg.contains('Invalid credentials')) {
-        errorMsg = 'Invalid email or password';
-      } else if (errorMsg.contains('SocketException') || errorMsg.contains('Connection refused')) {
-        errorMsg = 'Cannot connect to server. Please check your internet connection.';
-      }
       state = state.copyWith(
         status: DriverAuthStatus.unauthenticated,
-        error: errorMsg,
+        error: _extractError(e),
       );
     }
   }
 
-  /// Register new driver - POST /auth/register (with role: 'driver')
+  /// Register new driver - POST /auth/register (with role: 'DRIVER')
   Future<void> register({
     required String name,
     required String email,
@@ -134,15 +187,9 @@ class DriverAuthNotifier extends StateNotifier<DriverAuthState> {
         status: DriverAuthStatus.authenticated,
       );
     } catch (e) {
-      String errorMsg = e.toString();
-      if (errorMsg.contains('Email already registered')) {
-        errorMsg = 'This email is already registered. Try logging in instead.';
-      } else if (errorMsg.contains('SocketException') || errorMsg.contains('Connection refused')) {
-        errorMsg = 'Cannot connect to server. Please check your internet connection.';
-      }
       state = state.copyWith(
         status: DriverAuthStatus.unauthenticated,
-        error: errorMsg,
+        error: _extractError(e),
       );
     }
   }
@@ -172,7 +219,6 @@ class DriverAuthNotifier extends StateNotifier<DriverAuthState> {
       final isValid = await secureStorage.isTokenValid();
 
       if (accessToken != null && isValid) {
-        // Token exists and is valid, consider authenticated
         try {
           final socketService = _ref.read(driverSocketServiceProvider);
           socketService.connect(authToken: accessToken);
@@ -195,14 +241,3 @@ final driverAuthProvider =
   return DriverAuthNotifier(ref);
 });
 
-/// Is driver authenticated provider
-final isDriverAuthenticatedProvider = Provider<bool>((ref) {
-  final authState = ref.watch(driverAuthProvider);
-  return authState.status == DriverAuthStatus.authenticated;
-});
-
-/// Current driver provider
-final currentDriverProvider = Provider<DriverModel?>((ref) {
-  final authState = ref.watch(driverAuthProvider);
-  return authState.driver;
-});

@@ -1,3 +1,4 @@
+
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
@@ -35,9 +36,13 @@ export class AuthService {
     });
 
     // Create wallet for user
-    await this.prisma.wallet.create({
-      data: { userId: user.id, currency: 'USD' },
-    });
+    try {
+      await this.prisma.wallet.create({
+        data: { userId: user.id, currency: 'USD' },
+      });
+    } catch (e) {
+      console.log('Could not create wallet:', e.message);
+    }
 
     // If registering as driver, create driver profile
     if (userRole === 'DRIVER') {
@@ -51,7 +56,6 @@ export class AuthService {
           },
         });
       } catch (e) {
-        // Driver table might have issues, log but don't fail registration
         console.log('Could not create driver profile:', e.message);
       }
     }
@@ -59,16 +63,19 @@ export class AuthService {
     // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email, user.role);
     
+    // IMPORTANT: isNewUser must be at TOP LEVEL (not inside user) to match Flutter AuthResponse model
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+      isNewUser: true,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         phone: user.phone,
         role: user.role,
-        isNewUser: true,
+        averageRating: user.averageRating || 0,
+        totalRides: user.totalRides || 0,
       },
     };
   }
@@ -92,18 +99,19 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
 
+    // IMPORTANT: isNewUser must be at TOP LEVEL (not inside user) to match Flutter AuthResponse model
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+      isNewUser: false,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         phone: user.phone,
         role: user.role,
-        averageRating: user.averageRating,
-        totalRides: user.totalRides,
-        isNewUser: false,
+        averageRating: user.averageRating || 0,
+        totalRides: user.totalRides || 0,
       },
     };
   }
@@ -147,10 +155,11 @@ export class AuthService {
       ),
       this.jwtService.signAsync(
         { sub: userId, email, role },
-        { secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d' },
+        { secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, expiresIn: '7d' },
       ),
     ]);
 
     return { accessToken, refreshToken };
   }
 }
+
