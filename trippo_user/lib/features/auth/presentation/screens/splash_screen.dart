@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../notifiers/auth_notifier.dart';
 
 /// Splash Screen - Initial screen that checks auth state
@@ -18,14 +19,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _initializeApp() async {
-    // Check location permissions
-    // Check auth state
+    // Wait for splash animation
     await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    
+    // Check auth state and navigate directly
     ref.read(authProvider.notifier).checkAuth();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen for auth state changes and navigate accordingly
+    ref.listen<AuthState>(authProvider, (prev, next) {
+      if (next.status == AuthStatus.authenticated) {
+        context.go('/home');
+      } else if (next.status == AuthStatus.unauthenticated) {
+        context.go('/login');
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.green,
       body: Center(
@@ -50,7 +62,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Trippo',
+              'Madar',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 32,
@@ -59,7 +71,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Your ride, your way',
+              '\u0631\u062d\u0644\u062a\u0643\u060c \u0637\u0631\u064a\u0642\u062a\u0643',
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: 16,

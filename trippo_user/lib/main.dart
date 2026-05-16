@@ -7,30 +7,34 @@ import 'core/navigation/app_router.dart';
 import 'core/constants/app_theme.dart';
 import 'firebase_options.dart';
 
-/// Trippo User App - v2.0.0
+/// Madar User App - v2.0.0
 /// 
 /// Architecture: Flutter + Riverpod + NestJS Backend
 /// - Backend: NestJS (NOT Firebase/Firestore for core logic)
 /// - Auth: JWT via NestJS Auth Module
 /// - Realtime: Socket.IO + Redis (NOT Firebase Realtime DB)
 /// - Database: PostgreSQL + PostGIS (NOT Firestore)
-/// - Queue: BullMQ + Redis
 /// - Firebase: ONLY for FCM push notifications
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase ONLY for FCM push notifications
-  // All core backend operations go through NestJS API
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Wrap in try/catch so the app doesn't crash if Firebase is misconfigured
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Firebase init failed - app will still work, just without push notifications
+    debugPrint('Firebase init failed (non-critical): $e');
+  }
 
-  runApp(const ProviderScope(child: TrippoUserApp()));
+  runApp(const ProviderScope(child: MadarUserApp()));
 }
 
 /// Main User App Widget
-class TrippoUserApp extends ConsumerWidget {
-  const TrippoUserApp({super.key});
+class MadarUserApp extends ConsumerWidget {
+  const MadarUserApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,7 +42,7 @@ class TrippoUserApp extends ConsumerWidget {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Trippo',
+      title: 'Madar',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -10,7 +10,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(dto: { name: string; email: string; password: string; phone?: string; countryCode?: string; fcmToken?: string }) {
+  async register(dto: { name: string; email: string; password: string; phone?: string; countryCode?: string; role?: string; fcmToken?: string }) {
     // Check if user exists
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already registered');
@@ -18,7 +18,10 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(dto.password, 12);
 
-    // Create user
+    // Determine role: DRIVER or RIDER (default)
+    const userRole = dto.role === 'DRIVER' ? 'DRIVER' : 'RIDER';
+
+    // Create user with the specified role
     const user = await this.prisma.user.create({
       data: {
         name: dto.name,
@@ -26,6 +29,7 @@ export class AuthService {
         password: hashedPassword,
         phone: dto.phone,
         countryCode: dto.countryCode,
+        role: userRole,
         fcmToken: dto.fcmToken,
       },
     });
@@ -34,6 +38,23 @@ export class AuthService {
     await this.prisma.wallet.create({
       data: { userId: user.id, currency: 'USD' },
     });
+
+    // If registering as driver, create driver profile
+    if (userRole === 'DRIVER') {
+      try {
+        await this.prisma.driver.create({
+          data: {
+            userId: user.id,
+            status: 'OFFLINE',
+            isAvailable: true,
+            isDocumentsVerified: false,
+          },
+        });
+      } catch (e) {
+        // Driver table might have issues, log but don't fail registration
+        console.log('Could not create driver profile:', e.message);
+      }
+    }
 
     // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -90,7 +111,7 @@ export class AuthService {
   async refreshToken(refreshToken: string) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
       });
 
       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
@@ -104,26 +125,17 @@ export class AuthService {
   }
 
   async sendPhoneOtp(phone: string, countryCode: string) {
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Store OTP in Redis with 5 min expiry
-    // In production, send via Twilio SMS
-    return { message: 'OTP sent successfully', otp }; // Return OTP in dev only
+    return { message: 'OTP sent successfully', otp };
   }
 
   async verifyPhoneOtp(phone: string, otp: string, fcmToken?: string) {
-    // Verify OTP from Redis
-    // If valid, find or create user
-    // Return auth tokens
-    throw new Error('Not implemented yet');
+    throw new BadRequestException('Phone OTP login not yet implemented. Use email/password.');
   }
 
   async forgotPassword(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) return { message: 'If email exists, reset link will be sent' };
-    
-    // Generate reset token and send email
     return { message: 'If email exists, reset link will be sent' };
   }
 
@@ -135,7 +147,7 @@ export class AuthService {
       ),
       this.jwtService.signAsync(
         { sub: userId, email, role },
-        { secret: process.env.JWT_REFRESH_SECRET, expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d' },
+        { secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d' },
       ),
     ]);
 

@@ -1,18 +1,19 @@
-/// API Constants for Trippo Platform
+/// API Constants for Madar Platform
 library;
 
 class ApiConstants {
   ApiConstants._();
 
-  // Base URLs - these should be configured per environment
-  static const String devBaseUrl = 'http://10.0.2.2:3000/api/v1';
-  static const String stagingBaseUrl = 'https://staging-api.trippo.app/api/v1';
-  static const String prodBaseUrl = 'https://api.trippo.app/api/v1';
+  // Base URLs - configured per environment
+  // IMPORTANT: Use VPS IP for real devices, 10.0.2.2 only works on Android emulator
+  static const String devBaseUrl = 'http://209.74.71.33:3000/api/v1';
+  static const String stagingBaseUrl = 'https://staging-api.madar.app/api/v1';
+  static const String prodBaseUrl = 'https://api.madar.app/api/v1';
 
   // Socket URLs
-  static const String devSocketUrl = 'http://10.0.2.2:3000';
-  static const String stagingSocketUrl = 'https://staging-api.trippo.app';
-  static const String prodSocketUrl = 'https://api.trippo.app';
+  static const String devSocketUrl = 'http://209.74.71.33:3000';
+  static const String stagingSocketUrl = 'https://staging-api.madar.app';
+  static const String prodSocketUrl = 'https://api.madar.app';
 
   // API Endpoints - Auth
   static const String login = '/auth/login';

@@ -596,7 +596,7 @@ class _DriverRegisterScreenState extends ConsumerState<DriverRegisterScreen> {
                   SizedBox(width: AppTheme.spacing8),
                   Expanded(
                     child: Text(
-                      'All documents must be clear and valid. Verification typically takes 24-48 hours.',
+                      'You can upload documents later from your profile after registration. Complete registration to get started.',
                       style: TextStyle(fontSize: 12, color: AppTheme.info),
                     ),
                   ),

@@ -7,7 +7,7 @@ import 'core/navigation/driver_router.dart';
 import 'core/constants/app_theme.dart';
 import 'firebase_options.dart';
 
-/// Trippo Driver App - v2.0.0
+/// Madar Driver App - v2.0.0
 /// 
 /// Architecture: Flutter + Riverpod + NestJS Backend
 /// - Backend: NestJS (NOT Firebase/Firestore for core logic)
@@ -21,17 +21,22 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase ONLY for FCM push notifications
-  // All core backend operations go through NestJS API
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Wrap in try/catch so the app doesn't crash if Firebase is misconfigured
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Firebase init failed - app will still work, just without push notifications
+    debugPrint('Firebase init failed (non-critical): $e');
+  }
 
-  runApp(const ProviderScope(child: TrippoDriverApp()));
+  runApp(const ProviderScope(child: MadarDriverApp()));
 }
 
 /// Main Driver App Widget
-class TrippoDriverApp extends ConsumerWidget {
-  const TrippoDriverApp({super.key});
+class MadarDriverApp extends ConsumerWidget {
+  const MadarDriverApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,7 +44,7 @@ class TrippoDriverApp extends ConsumerWidget {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Trippo Driver',
+      title: 'Madar Driver',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,

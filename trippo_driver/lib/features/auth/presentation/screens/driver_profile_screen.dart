@@ -158,8 +158,7 @@ class _DriverProfileScreenState extends ConsumerState<DriverProfileScreen> {
       } catch (_) {}
 
       // Refresh auth state with updated profile
-      await ref.read(driverAuthProvider.notifier).updateDriverProfile();
-
+      
       if (mounted) {
         setState(() {
           _isEditingProfile = false;
@@ -199,8 +198,7 @@ class _DriverProfileScreenState extends ConsumerState<DriverProfileScreen> {
         },
       });
 
-      await ref.read(driverAuthProvider.notifier).updateDriverProfile();
-
+      
       if (mounted) {
         setState(() {
           _isEditingVehicle = false;

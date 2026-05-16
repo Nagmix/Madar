@@ -33,8 +33,6 @@ class DriverAuthState {
 
 /// Driver Auth Notifier
 /// Manages driver authentication via NestJS Auth Module
-/// Stores `userRole: 'driver'` in secure storage after login
-/// Connects SocketService after successful auth for real-time dispatch
 class DriverAuthNotifier extends StateNotifier<DriverAuthState> {
   final Ref _ref;
 
@@ -56,23 +54,38 @@ class DriverAuthNotifier extends StateNotifier<DriverAuthState> {
         fcmToken: fcmToken,
       );
 
-      // _saveAuthTokens inside apiClient.login already stores role as 'driver'
-
-      // Fetch full driver profile after login
-      final driverProfile = await apiClient.getDriverProfile();
+      // Save auth tokens
+      final secureStorage = SecureStorageService.instance;
+      await secureStorage.saveAuthTokens(
+        accessToken: authResponse.accessToken,
+        refreshToken: authResponse.refreshToken,
+        expiry: DateTime.now().add(const Duration(hours: 24)),
+      );
+      await secureStorage.saveUserId(authResponse.user.id);
+      await secureStorage.saveUserRole('driver');
+      await secureStorage.saveUserEmail(authResponse.user.email);
+      await secureStorage.saveUserName(authResponse.user.name);
 
       // Connect socket service for real-time updates
-      final socketService = _ref.read(driverSocketServiceProvider);
-      socketService.connect(authToken: authResponse.accessToken);
+      try {
+        final socketService = _ref.read(driverSocketServiceProvider);
+        socketService.connect(authToken: authResponse.accessToken);
+      } catch (_) {}
 
       state = state.copyWith(
         status: DriverAuthStatus.authenticated,
-        driver: driverProfile,
       );
     } catch (e) {
+      String errorMsg = e.toString();
+      // Clean up error message for display
+      if (errorMsg.contains('Invalid credentials')) {
+        errorMsg = 'Invalid email or password';
+      } else if (errorMsg.contains('SocketException') || errorMsg.contains('Connection refused')) {
+        errorMsg = 'Cannot connect to server. Please check your internet connection.';
+      }
       state = state.copyWith(
         status: DriverAuthStatus.unauthenticated,
-        error: e.toString(),
+        error: errorMsg,
       );
     }
   }
@@ -99,121 +112,79 @@ class DriverAuthNotifier extends StateNotifier<DriverAuthState> {
         fcmToken: fcmToken,
       );
 
-      // Fetch full driver profile after registration
-      final driverProfile = await apiClient.getDriverProfile();
+      // Save auth tokens
+      final secureStorage = SecureStorageService.instance;
+      await secureStorage.saveAuthTokens(
+        accessToken: authResponse.accessToken,
+        refreshToken: authResponse.refreshToken,
+        expiry: DateTime.now().add(const Duration(hours: 24)),
+      );
+      await secureStorage.saveUserId(authResponse.user.id);
+      await secureStorage.saveUserRole('driver');
+      await secureStorage.saveUserEmail(authResponse.user.email);
+      await secureStorage.saveUserName(authResponse.user.name);
 
-      // Connect socket service for real-time updates
-      final socketService = _ref.read(driverSocketServiceProvider);
-      socketService.connect(authToken: authResponse.accessToken);
+      // Connect socket service
+      try {
+        final socketService = _ref.read(driverSocketServiceProvider);
+        socketService.connect(authToken: authResponse.accessToken);
+      } catch (_) {}
 
       state = state.copyWith(
         status: DriverAuthStatus.authenticated,
-        driver: driverProfile,
       );
     } catch (e) {
+      String errorMsg = e.toString();
+      if (errorMsg.contains('Email already registered')) {
+        errorMsg = 'This email is already registered. Try logging in instead.';
+      } else if (errorMsg.contains('SocketException') || errorMsg.contains('Connection refused')) {
+        errorMsg = 'Cannot connect to server. Please check your internet connection.';
+      }
       state = state.copyWith(
         status: DriverAuthStatus.unauthenticated,
-        error: e.toString(),
+        error: errorMsg,
       );
     }
   }
 
-  /// Logout - POST /auth/logout
-  /// Clears tokens from secure storage and disconnects socket
+  /// Logout
   Future<void> logout() async {
     try {
       final apiClient = _ref.read(nestjsApiClientProvider);
       await apiClient.logout();
-    } catch (_) {
-      // Even if API call fails, we still clear local state
-    }
+    } catch (_) {}
 
-    // Disconnect socket
-    final socketService = _ref.read(driverSocketServiceProvider);
-    socketService.disconnect();
+    try {
+      final socketService = _ref.read(driverSocketServiceProvider);
+      socketService.disconnect();
+    } catch (_) {}
 
     state = const DriverAuthState(status: DriverAuthStatus.unauthenticated);
   }
 
   /// Check if driver is already logged in on app start
-  /// Validates stored JWT token and refreshes if needed
   Future<void> checkAuth() async {
     state = state.copyWith(status: DriverAuthStatus.loading, error: null);
 
     try {
-      final apiClient = _ref.read(nestjsApiClientProvider);
       final secureStorage = SecureStorageService.instance;
-
-      // Check if we have a valid access token
       final accessToken = await secureStorage.getAccessToken();
       final isValid = await secureStorage.isTokenValid();
-      final userRole = await secureStorage.getUserRole();
 
-      if (accessToken != null && isValid && userRole == 'driver') {
-        // Try to fetch driver profile to validate token
+      if (accessToken != null && isValid) {
+        // Token exists and is valid, consider authenticated
         try {
-          final driverProfile = await apiClient.getDriverProfile();
-
-          // Reconnect socket with existing token
           final socketService = _ref.read(driverSocketServiceProvider);
           socketService.connect(authToken: accessToken);
+        } catch (_) {}
 
-          state = state.copyWith(
-            status: DriverAuthStatus.authenticated,
-            driver: driverProfile,
-          );
-          return;
-        } catch (_) {
-          // Token might be expired, try refresh
-          try {
-            await apiClient.refreshToken();
-            final driverProfile = await apiClient.getDriverProfile();
-
-            final newToken = await secureStorage.getAccessToken();
-            final socketService = _ref.read(driverSocketServiceProvider);
-            if (newToken != null) {
-              socketService.connect(authToken: newToken);
-            }
-
-            state = state.copyWith(
-              status: DriverAuthStatus.authenticated,
-              driver: driverProfile,
-            );
-            return;
-          } catch (_) {
-            // Refresh failed, need to re-login
-          }
-        }
+        state = state.copyWith(status: DriverAuthStatus.authenticated);
+        return;
       }
 
       state = const DriverAuthState(status: DriverAuthStatus.unauthenticated);
     } catch (e) {
-      state = DriverAuthState(
-        status: DriverAuthStatus.unauthenticated,
-        error: e.toString(),
-      );
-    }
-  }
-
-  /// Update driver profile - PUT /drivers/profile
-  Future<void> updateDriverProfile({
-    String? name,
-    String? phone,
-    String? countryCode,
-    String? profileImageUrl,
-  }) async {
-    try {
-      final apiClient = _ref.read(nestjsApiClientProvider);
-      // Note: The API client uses the driver profile endpoint
-      // which returns the updated DriverModel
-      await apiClient.getDriverProfile(); // Verify we can reach the API
-
-      // Refresh the driver profile from server
-      final updatedDriver = await apiClient.getDriverProfile();
-
-      state = state.copyWith(driver: updatedDriver);
-    } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = const DriverAuthState(status: DriverAuthStatus.unauthenticated);
     }
   }
 }
@@ -230,7 +201,7 @@ final isDriverAuthenticatedProvider = Provider<bool>((ref) {
   return authState.status == DriverAuthStatus.authenticated;
 });
 
-/// Current driver provider - convenience accessor
+/// Current driver provider
 final currentDriverProvider = Provider<DriverModel?>((ref) {
   final authState = ref.watch(driverAuthProvider);
   return authState.driver;

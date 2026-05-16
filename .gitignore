@@ -26,10 +26,13 @@ node_modules/
 dist/
 
 # Android
+# APKs are excluded except in apk-builds
 *.apk
+!*apk-builds/*.apk
 *.aab
 local.properties
 .gradle/
 
 # iOS
 Pods/
+

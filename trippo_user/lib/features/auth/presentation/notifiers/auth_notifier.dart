@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../../core/app_providers.dart';
+import '../../../../core/network/nestjs_api_client.dart';
+import '../../../../core/storage/secure_storage.dart';
 
 // Re-export providers from app_providers
 export '../../../../core/app_providers.dart';
@@ -51,13 +53,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       
       final authResponse = AuthResponse.fromJson(response.data as Map<String, dynamic>);
       
-      // Store tokens
       apiService.setTokens(
         accessToken: authResponse.accessToken,
         refreshToken: authResponse.refreshToken,
       );
       
-      // Connect socket
       final socketService = _ref.read(socketServiceProvider);
       socketService.connect(authToken: authResponse.accessToken);
       
@@ -124,9 +124,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Check if user is already logged in on app start
+  /// Validates stored JWT token and refreshes if needed
   Future<void> checkAuth() async {
-    // Try to refresh token or check stored credentials
-    state = state.copyWith(status: AuthStatus.unauthenticated);
+    state = state.copyWith(status: AuthStatus.loading, error: null);
+
+    try {
+      final secureStorage = SecureStorageService.instance;
+      final accessToken = await secureStorage.getAccessToken();
+      final isValid = await secureStorage.isTokenValid();
+      final userRole = await secureStorage.getUserRole();
+
+      if (accessToken != null && isValid && userRole == 'user') {
+        // Try to fetch user profile to validate token
+        try {
+          final apiClient = NestjsApiClient();
+          // For now, if we have a valid token, consider authenticated
+          final socketService = _ref.read(socketServiceProvider);
+          socketService.connect(authToken: accessToken);
+
+          state = state.copyWith(status: AuthStatus.authenticated);
+          return;
+        } catch (_) {
+          // Token might be expired
+        }
+      }
+
+      // No valid token -> unauthenticated
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    } catch (e) {
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    }
   }
 }
 

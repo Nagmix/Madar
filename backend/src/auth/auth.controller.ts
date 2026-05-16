@@ -1,9 +1,9 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { IsString, IsEmail, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsEmail, IsOptional, MinLength, IsIn } from 'class-validator';
 import { AuthService } from './auth.service';
 
-// DTOs - must be defined before the controller class
+// DTOs
 class RegisterDto {
   @IsString()
   name: string;
@@ -22,6 +22,11 @@ class RegisterDto {
   @IsOptional()
   @IsString()
   countryCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['RIDER', 'DRIVER'])
+  role?: string;
 
   @IsOptional()
   @IsString()
@@ -80,7 +85,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register new user' })
+  @ApiOperation({ summary: 'Register new user or driver' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
@@ -125,7 +130,6 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout user' })
   async logout() {
-    // Token invalidation handled on client side
     return { message: 'Logged out successfully' };
   }
 }
