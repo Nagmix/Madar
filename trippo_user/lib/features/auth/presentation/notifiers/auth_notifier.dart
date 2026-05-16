@@ -29,12 +29,13 @@ class AuthState {
       );
 }
 
-/// Auth Notifier
+/// Auth Notifier - User App
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref _ref;
 
   AuthNotifier(this._ref) : super(const AuthState());
 
+  /// Login with email/password
   Future<void> login({
     required String email,
     required String password,
@@ -42,37 +43,51 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading, error: null);
     
     try {
-      final apiService = _ref.read(apiServiceProvider);
-      final response = await apiService.post(
-        ApiConstants.login,
-        data: LoginRequest(
-          email: email,
-          password: password,
-        ).toJson(),
+      final apiClient = NestjsApiClient();
+      final authResponse = await apiClient.login(
+        email: email,
+        password: password,
       );
-      
-      final authResponse = AuthResponse.fromJson(response.data as Map<String, dynamic>);
-      
+
+      // Save tokens to secure storage for persistence
+      final secureStorage = SecureStorageService.instance;
+      await secureStorage.saveAuthTokens(
+        accessToken: authResponse.accessToken,
+        refreshToken: authResponse.refreshToken,
+        expiry: DateTime.now().add(const Duration(hours: 24)),
+      );
+      await secureStorage.saveUserId(authResponse.user.id);
+      await secureStorage.saveUserRole('user');
+      await secureStorage.saveUserEmail(authResponse.user.email);
+      await secureStorage.saveUserName(authResponse.user.name);
+
+      // Set tokens on shared API service too
+      final apiService = _ref.read(apiServiceProvider);
       apiService.setTokens(
         accessToken: authResponse.accessToken,
         refreshToken: authResponse.refreshToken,
       );
-      
-      final socketService = _ref.read(socketServiceProvider);
-      socketService.connect(authToken: authResponse.accessToken);
+
+      // Connect socket
+      try {
+        final socketService = _ref.read(socketServiceProvider);
+        socketService.connect(authToken: authResponse.accessToken);
+      } catch (_) {}
       
       state = state.copyWith(
         status: AuthStatus.authenticated,
         user: authResponse.user,
       );
     } catch (e) {
+      String errorMsg = _cleanError(e.toString());
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
-        error: e.toString(),
+        error: errorMsg,
       );
     }
   }
 
+  /// Register new user
   Future<void> register({
     required String name,
     required String email,
@@ -81,50 +96,70 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading, error: null);
     
     try {
-      final apiService = _ref.read(apiServiceProvider);
-      final response = await apiService.post(
-        ApiConstants.register,
-        data: RegisterRequest(
-          name: name,
-          email: email,
-          password: password,
-        ).toJson(),
+      final apiClient = NestjsApiClient();
+      final authResponse = await apiClient.register(
+        name: name,
+        email: email,
+        password: password,
       );
-      
-      final authResponse = AuthResponse.fromJson(response.data as Map<String, dynamic>);
-      
+
+      // Save tokens to secure storage
+      final secureStorage = SecureStorageService.instance;
+      await secureStorage.saveAuthTokens(
+        accessToken: authResponse.accessToken,
+        refreshToken: authResponse.refreshToken,
+        expiry: DateTime.now().add(const Duration(hours: 24)),
+      );
+      await secureStorage.saveUserId(authResponse.user.id);
+      await secureStorage.saveUserRole('user');
+      await secureStorage.saveUserEmail(authResponse.user.email);
+      await secureStorage.saveUserName(authResponse.user.name);
+
+      // Set tokens on shared API service
+      final apiService = _ref.read(apiServiceProvider);
       apiService.setTokens(
         accessToken: authResponse.accessToken,
         refreshToken: authResponse.refreshToken,
       );
-      
-      final socketService = _ref.read(socketServiceProvider);
-      socketService.connect(authToken: authResponse.accessToken);
+
+      // Connect socket
+      try {
+        final socketService = _ref.read(socketServiceProvider);
+        socketService.connect(authToken: authResponse.accessToken);
+      } catch (_) {}
       
       state = state.copyWith(
         status: AuthStatus.authenticated,
         user: authResponse.user,
       );
     } catch (e) {
+      String errorMsg = _cleanError(e.toString());
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
-        error: e.toString(),
+        error: errorMsg,
       );
     }
   }
 
+  /// Logout
   Future<void> logout() async {
+    try {
+      final apiClient = NestjsApiClient();
+      await apiClient.logout();
+    } catch (_) {}
+
     final apiService = _ref.read(apiServiceProvider);
     apiService.clearTokens();
     
-    final socketService = _ref.read(socketServiceProvider);
-    socketService.disconnect();
+    try {
+      final socketService = _ref.read(socketServiceProvider);
+      socketService.disconnect();
+    } catch (_) {}
     
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
   /// Check if user is already logged in on app start
-  /// Validates stored JWT token and refreshes if needed
   Future<void> checkAuth() async {
     state = state.copyWith(status: AuthStatus.loading, error: null);
 
@@ -132,28 +167,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final secureStorage = SecureStorageService.instance;
       final accessToken = await secureStorage.getAccessToken();
       final isValid = await secureStorage.isTokenValid();
-      final userRole = await secureStorage.getUserRole();
 
-      if (accessToken != null && isValid && userRole == 'user') {
-        // Try to fetch user profile to validate token
+      if (accessToken != null && isValid) {
         try {
-          final apiClient = NestjsApiClient();
-          // For now, if we have a valid token, consider authenticated
           final socketService = _ref.read(socketServiceProvider);
           socketService.connect(authToken: accessToken);
+        } catch (_) {}
 
-          state = state.copyWith(status: AuthStatus.authenticated);
-          return;
-        } catch (_) {
-          // Token might be expired
-        }
+        state = state.copyWith(status: AuthStatus.authenticated);
+        return;
       }
 
-      // No valid token -> unauthenticated
       state = const AuthState(status: AuthStatus.unauthenticated);
     } catch (e) {
       state = const AuthState(status: AuthStatus.unauthenticated);
     }
+  }
+
+  /// Clean up error messages for display
+  String _cleanError(String error) {
+    if (error.contains('Invalid credentials')) {
+      return 'Invalid email or password';
+    } else if (error.contains('SocketException') || error.contains('Connection refused')) {
+      return 'Cannot connect to server. Please check your internet connection.';
+    } else if (error.contains('Email already registered')) {
+      return 'This email is already registered. Try logging in instead.';
+    } else if (error.contains('connection error') || error.contains('Software caused connection abort')) {
+      return 'Network error. Please check your internet connection and try again.';
+    } else if (error.contains('timeout')) {
+      return 'Connection timed out. Please try again.';
+    }
+    return error.replaceAll('Exception: ', '').replaceAll('DioException ', '');
   }
 }
 
