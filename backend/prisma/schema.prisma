@@ -83,7 +83,7 @@ model Driver {
   updatedAt         DateTime     @updatedAt
 
   // Relations
-  vehicle           Vehicle
+  vehicle           Vehicle?
   documents         DriverDocument[]
   tripsAsDriver     Trip[]          @relation("DriverTrips")
   wallet            Wallet?
@@ -94,7 +94,7 @@ model Driver {
 model Vehicle {
   id          String   @id @default(uuid())
   driverId    String   @unique
-  driver      Driver?  @relation(fields: [driverId], references: [id])
+  driver      Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
   name        String
   plateNumber String
   type        VehicleType
