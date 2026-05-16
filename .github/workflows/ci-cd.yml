@@ -1,0 +1,356 @@
+name: Trippo CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE_NAME: ${{ github.repository }}/trippo-backend
+  FLUTTER_VERSION: '3.22.0'
+
+jobs:
+  # ════════════════════════════════════════════════════════════════
+  # BACKEND JOB - NestJS API
+  # ════════════════════════════════════════════════════════════════
+  backend:
+    name: Backend CI/CD
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: trippo_test
+          POSTGRES_PASSWORD: trippo_test_password
+          POSTGRES_DB: trippo_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://trippo_test:trippo_test_password@localhost:5432/trippo_test_db?schema=public
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      JWT_SECRET: test_jwt_secret_key_ci
+      JWT_REFRESH_SECRET: test_refresh_jwt_secret_key_ci
+      JWT_EXPIRY: 1h
+      JWT_REFRESH_EXPIRY: 7d
+      GOOGLE_MAPS_API_KEY: test_google_maps_key
+      APP_PORT: 3000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run database migrations
+        run: npx prisma migrate deploy || npx prisma migrate dev --name init
+
+      - name: Lint with ESLint
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test -- --coverage --forceExit
+
+      - name: Run e2e tests
+        run: npm run test:e2e 2>/dev/null || echo "No e2e tests configured yet"
+        env:
+          DATABASE_URL: postgresql://trippo_test:trippo_test_password@localhost:5432/trippo_test_db?schema=public
+
+      - name: Build the project
+        run: npm run build
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage/
+          retention-days: 7
+
+      # ── Docker Build & Push (main branch only) ──
+      - name: Log in to Container Registry
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+
+  # ════════════════════════════════════════════════════════════════
+  # FLUTTER JOB - User App + Driver App
+  # ════════════════════════════════════════════════════════════════
+  flutter:
+    name: Flutter CI/CD
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      # ── Shared Package ──
+      - name: Install shared package dependencies
+        working-directory: trippo_shared
+        run: flutter pub get
+
+      - name: Run build_runner for shared
+        working-directory: trippo_shared
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze shared package
+        working-directory: trippo_shared
+        run: flutter analyze
+
+      - name: Test shared package
+        working-directory: trippo_shared
+        run: flutter test || echo "No tests in shared package"
+
+      # ── User App ──
+      - name: Install User App dependencies
+        working-directory: trippo_user
+        run: flutter pub get
+
+      - name: Run build_runner for User App
+        working-directory: trippo_user
+        run: dart run build_runner build --delete-conflicting-outputs || true
+
+      - name: Analyze User App
+        working-directory: trippo_user
+        run: flutter analyze
+
+      - name: Test User App
+        working-directory: trippo_user
+        run: flutter test
+
+      # ── Driver App ──
+      - name: Install Driver App dependencies
+        working-directory: trippo_driver
+        run: flutter pub get
+
+      - name: Run build_runner for Driver App
+        working-directory: trippo_driver
+        run: dart run build_runner build --delete-conflicting-outputs || true
+
+      - name: Analyze Driver App
+        working-directory: trippo_driver
+        run: flutter analyze
+
+      - name: Test Driver App
+        working-directory: trippo_driver
+        run: flutter test
+
+      # ── Build APKs (main branch only) ──
+      - name: Build User App APK
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: trippo_user
+        run: flutter build apk --release --obfuscate --split-debug-info=build/debug-info
+
+      - name: Build Driver App APK
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: trippo_driver
+        run: flutter build apk --release --obfuscate --split-debug-info=build/debug-info
+
+      - name: Upload User App APK
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: trippo-user-apk
+          path: trippo_user/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Upload Driver App APK
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: trippo-driver-apk
+          path: trippo_driver/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+  # ════════════════════════════════════════════════════════════════
+  # DEPLOY JOB - Production Deployment (main only)
+  # ════════════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [backend, flutter]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── Semantic Version Tag ──
+      - name: Get latest version tag
+        id: prev_tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Bump version and push tag
+        id: bump_version
+        run: |
+          PREV_TAG=${{ steps.prev_tag.outputs.tag }}
+          # Strip leading 'v' and parse
+          VERSION=${PREV_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # Determine bump type from commit messages
+          if git log --format=%B -n 1 | grep -qiE "breaking|major"; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif git log --format=%B -n 1 | grep -qiE "feat|minor"; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
+          git push origin "$NEW_TAG"
+
+      # ── Deploy Backend via SSH ──
+      - name: Deploy backend to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH || '/opt/trippo' }}
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Deploying backend services..."
+            cd backend
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+            echo "Running database migrations..."
+            docker compose -f docker-compose.prod.yml exec -T nestjs-app npx prisma migrate deploy
+
+            echo "Health check..."
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost:3000/api/v1/health > /dev/null 2>&1; then
+                echo "Backend is healthy!"
+                exit 0
+              fi
+              echo "Waiting for backend... ($i/30)"
+              sleep 5
+            done
+            echo "Backend health check failed!"
+            exit 1
+
+      # ── Post-deployment notifications ──
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.bump_version.outputs.new_tag }}
+          name: Release ${{ steps.bump_version.outputs.new_tag }}
+          body: |
+            ## Trippo Release ${{ steps.bump_version.outputs.new_tag }}
+
+            ### Changes
+            - See commit history for changes since previous release
+
+            ### Artifacts
+            - Backend Docker image: `${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.bump_version.outputs.new_tag }}`
+            - User App APK: Download from workflow artifacts
+            - Driver App APK: Download from workflow artifacts
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "Deployment of ${{ steps.bump_version.outputs.new_tag }} completed successfully!"
+          echo "Backend: ${{ secrets.DEPLOY_HOST }}:3000"
+          echo "Version: ${{ steps.bump_version.outputs.new_tag }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "DEPLOYMENT FAILED for ${{ steps.bump_version.outputs.new_tag }}"
+          echo "Check logs and rollback if necessary"

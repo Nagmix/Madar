@@ -1,0 +1,33 @@
+name: trippo_shared
+description: Shared code between Trippo User and Driver apps
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.6 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+  riverpod: ^2.4.9
+  flutter_riverpod: ^2.4.9
+  google_maps_flutter: ^2.5.3
+  geolocator: ^10.1.0
+  dio: ^5.4.0
+  socket_io_client: ^2.0.3+1
+  uuid: ^4.2.2
+  intl: ^0.19.0
+  equatable: ^2.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.7
+  freezed: ^2.4.5
+  json_serializable: ^6.7.1
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true

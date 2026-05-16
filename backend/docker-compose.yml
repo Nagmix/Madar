@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # ==================== PostgreSQL + PostGIS ====================
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: trippo-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: trippo
+      POSTGRES_PASSWORD: trippo_secret_2024
+      POSTGRES_DB: trippo_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trippo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    container_name: trippo-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass trippo_redis_2024 --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "trippo_redis_2024", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== NestJS Backend ====================
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: trippo-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://trippo:trippo_secret_2024@postgres:5432/trippo_db?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: trippo_redis_2024
+      JWT_SECRET: trippo_jwt_super_secret_key_2024
+      JWT_REFRESH_SECRET: trippo_refresh_jwt_secret_key_2024
+      JWT_EXPIRY: 24h
+      JWT_REFRESH_EXPIRY: 7d
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID}
+      FCM_PRIVATE_KEY: ${FCM_PRIVATE_KEY}
+      FCM_CLIENT_EMAIL: ${FCM_CLIENT_EMAIL}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+
+  # ==================== MinIO (S3-compatible Storage) ====================
+  minio:
+    image: minio/minio:latest
+    container_name: trippo-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: trippo_minio
+      MINIO_ROOT_PASSWORD: trippo_minio_secret_2024
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  # ==================== Redis Insight (Redis GUI) ====================
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: trippo-redis-insight
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+
+  # ==================== pgAdmin (PostgreSQL GUI) ====================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: trippo-pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@trippo.app
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

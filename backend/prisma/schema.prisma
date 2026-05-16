@@ -1,0 +1,581 @@
+// Prisma Schema for Trippo Platform
+// PostgreSQL + PostGIS
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+// ==================== USERS ====================
+
+enum UserRole {
+  RIDER
+  DRIVER
+  ADMIN
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String
+  name              String
+  phone             String?
+  countryCode       String?
+  profileImageUrl   String?
+  role              UserRole  @default(RIDER)
+  isEmailVerified   Boolean   @default(false)
+  isPhoneVerified   Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  isBanned          Boolean   @default(false)
+  averageRating     Float     @default(0)
+  totalRides        Int       @default(0)
+  cancellations     Int       @default(0)
+  preferredLanguage String    @default("en")
+  preferredCurrency String    @default("USD")
+  fcmToken          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastActiveAt      DateTime?
+
+  // Relations
+  driver    Driver?
+  tripsAsRider Trip[]    @relation("RiderTrips")
+  wallet    Wallet?
+  notifications Notification[]
+  deviceTokens DeviceToken[]
+
+  @@map("users")
+}
+
+// ==================== DRIVERS ====================
+
+enum DriverStatus {
+  OFFLINE
+  ONLINE
+  BUSY
+  SUSPENDED
+}
+
+model Driver {
+  id                String       @id @default(uuid())
+  userId            String       @unique
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status            DriverStatus @default(OFFLINE)
+  currentLocation   Unsupported("geography(Point,4326)")?
+  lastKnownLat      Float?
+  lastKnownLng      Float?
+  averageRating     Float        @default(0)
+  totalTrips        Int          @default(0)
+  completedTrips    Int          @default(0)
+  cancelledTrips    Int          @default(0)
+  acceptanceRate    Float        @default(0)
+  cancellationRate  Float        @default(0)
+  isDocumentsVerified Boolean    @default(false)
+  isAvailable       Boolean      @default(true)
+  lastOnlineAt      DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  // Relations
+  vehicle           Vehicle
+  documents         DriverDocument[]
+  tripsAsDriver     Trip[]          @relation("DriverTrips")
+  wallet            Wallet?
+
+  @@map("drivers")
+}
+
+model Vehicle {
+  id          String   @id @default(uuid())
+  driverId    String   @unique
+  driver      Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  name        String
+  plateNumber String
+  type        VehicleType
+  color       String?
+  model       String?
+  year        String?
+  imageUrl    String?
+  seats       Int      @default(4)
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("vehicles")
+}
+
+enum VehicleType {
+  MOTORCYCLE
+  SEDAN
+  SUV
+  VAN
+  LUXURY
+}
+
+model DriverDocument {
+  id             String         @id @default(uuid())
+  driverId       String
+  driver         Driver         @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  type           DocumentType
+  documentUrl    String
+  status         DocumentStatus @default(PENDING)
+  rejectionReason String?
+  uploadedAt     DateTime       @default(now())
+  verifiedAt     DateTime?
+  expiresAt      DateTime?
+
+  @@map("driver_documents")
+}
+
+enum DocumentType {
+  DRIVING_LICENSE
+  VEHICLE_REGISTRATION
+  INSURANCE
+  NATIONAL_ID
+  BACKGROUND_CHECK
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+// ==================== TRIPS ====================
+
+enum TripState {
+  SEARCHING_DRIVER
+  DRIVER_ASSIGNED
+  DRIVER_ARRIVING
+  DRIVER_ARRIVED
+  TRIP_STARTED
+  TRIP_PAUSED
+  TRIP_RESUMED
+  TRIP_COMPLETED
+  PAYMENT_PENDING
+  PAYMENT_COMPLETED
+  TRIP_CANCELLED
+}
+
+enum CancelledBy {
+  RIDER
+  DRIVER
+  SYSTEM
+  TIMEOUT
+}
+
+model Trip {
+  id                    String     @id @default(uuid())
+  riderId               String
+  rider                 User       @relation("RiderTrips", fields: [riderId], references: [id])
+  driverId              String?
+  driver                Driver?    @relation("DriverTrips", fields: [driverId], references: [id])
+  state                 TripState  @default(SEARCHING_DRIVER)
+  
+  // Locations
+  pickupLat             Float
+  pickupLng             Float
+  pickupAddress         String
+  dropoffLat            Float
+  dropoffLng            Float
+  dropoffAddress        String
+  
+  // Route info
+  distanceMeters        Int?
+  durationSeconds       Int?
+  encodedPolyline       String?
+  
+  // Fare
+  baseFare              Float      @default(0)
+  distanceFare          Float      @default(0)
+  timeFare              Float      @default(0)
+  surgeCharge           Float      @default(0)
+  nightCharge           Float      @default(0)
+  areaCharge            Float      @default(0)
+  waitingCharge         Float      @default(0)
+  cancellationFee       Float      @default(0)
+  promoDiscount         Float      @default(0)
+  totalFare             Float      @default(0)
+  surgeMultiplier       Float      @default(1)
+  nightMultiplier       Float      @default(1)
+  areaMultiplier        Float      @default(1)
+  currency              String     @default("USD")
+  
+  // Vehicle
+  vehicleType           VehicleType @default(SEDAN)
+  
+  // Cancellation
+  cancellationReason    String?
+  cancelledBy           CancelledBy?
+  
+  // Rating
+  riderRating           Float      @default(0)
+  driverRating          Float      @default(0)
+  riderReview           String?
+  driverReview          String?
+  
+  // Promo
+  promoCode             String?
+  note                  String?
+  
+  // Timestamps
+  driverAssignedAt      DateTime?
+  driverArrivedAt       DateTime?
+  tripStartedAt         DateTime?
+  tripCompletedAt       DateTime?
+  cancelledAt           DateTime?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  // Relations
+  stateLog              TripStateLog[]
+  transactions          WalletTransaction[]
+  
+  @@index([riderId])
+  @@index([driverId])
+  @@index([state])
+  @@index([createdAt])
+  @@map("trips")
+}
+
+model TripStateLog {
+  id        String    @id @default(uuid())
+  tripId    String
+  trip      Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  state     TripState
+  changedBy String?
+  reason    String?
+  metadata  Json?
+  timestamp DateTime  @default(now())
+
+  @@index([tripId])
+  @@map("trip_state_logs")
+}
+
+// ==================== WALLET ====================
+
+enum WalletStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+model Wallet {
+  id                String      @id @default(uuid())
+  userId            String      @unique
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  driverId          String?     @unique
+  driver            Driver?     @relation(fields: [driverId], references: [id])
+  availableBalance  Float       @default(0)
+  pendingBalance    Float       @default(0)
+  totalEarnings     Float       @default(0)
+  totalWithdrawals  Float       @default(0)
+  totalCommissions  Float       @default(0)
+  totalIncentives   Float       @default(0)
+  currency          String      @default("USD")
+  status            WalletStatus @default(ACTIVE)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  transactions      WalletTransaction[]
+  withdrawals       WithdrawalRequest[]
+  settlements       Settlement[]
+
+  @@map("wallets")
+}
+
+enum TransactionType {
+  TRIP_EARNING
+  COMMISSION_DEDUCTION
+  WITHDRAWAL
+  INCENTIVE_BONUS
+  CANCELLATION_FEE
+  ADJUSTMENT
+  PENALTY
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+model WalletTransaction {
+  id            String           @id @default(uuid())
+  walletId      String
+  wallet        Wallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  driverId      String
+  type          TransactionType
+  amount        Float
+  balanceAfter  Float
+  currency      String           @default("USD")
+  description   String
+  tripId        String?
+  referenceId   String?
+  status        TransactionStatus @default(COMPLETED)
+  createdAt     DateTime         @default(now())
+
+  @@index([walletId])
+  @@index([driverId])
+  @@index([type])
+  @@map("wallet_transactions")
+}
+
+enum WithdrawalMethod {
+  BANK_TRANSFER
+  MOBILE_WALLET
+  CASH
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+model WithdrawalRequest {
+  id              String           @id @default(uuid())
+  driverId        String
+  walletId        String
+  wallet          Wallet           @relation(fields: [walletId], references: [id])
+  amount          Float
+  currency        String           @default("USD")
+  method          WithdrawalMethod
+  accountDetails  String
+  status          WithdrawalStatus @default(PENDING)
+  rejectionReason String?
+  requestedAt     DateTime         @default(now())
+  processedAt     DateTime?
+
+  @@index([driverId])
+  @@map("withdrawal_requests")
+}
+
+enum SettlementStatus {
+  PENDING
+  PROCESSING
+  SETTLED
+}
+
+model Settlement {
+  id             String           @id @default(uuid())
+  driverId       String
+  walletId       String
+  wallet         Wallet           @relation(fields: [walletId], references: [id])
+  period         String
+  totalEarnings  Float
+  totalCommissions Float
+  totalIncentives Float
+  netAmount      Float
+  currency       String           @default("USD")
+  status         SettlementStatus @default(PENDING)
+  tripIds        String[]
+  startDate      DateTime
+  endDate        DateTime
+  settledAt      DateTime?
+
+  @@index([driverId])
+  @@map("settlements")
+}
+
+// ==================== NOTIFICATIONS ====================
+
+enum NotificationType {
+  TRIP_UPDATE
+  DRIVER_ASSIGNED
+  DRIVER_ARRIVING
+  DRIVER_ARRIVED
+  TRIP_STARTED
+  TRIP_COMPLETED
+  TRIP_CANCELLED
+  PAYMENT_RECEIVED
+  WALLET_UPDATE
+  WITHDRAWAL_STATUS
+  PROMOTION
+  SYSTEM
+  DOCUMENT_VERIFICATION
+  RATING_REMINDER
+}
+
+enum NotificationChannel {
+  PUSH
+  SMS
+  WHATSAPP
+  EMAIL
+  IN_APP
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  FAILED
+}
+
+model Notification {
+  id          String             @id @default(uuid())
+  userId      String
+  title       String
+  body        String
+  type        NotificationType
+  channel     NotificationChannel
+  status      NotificationStatus @default(UNREAD)
+  data        Json?
+  imageUrl    String?
+  actionUrl   String?
+  readAt      DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model DeviceToken {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token        String
+  platform     String
+  deviceId     String
+  isActive     Boolean  @default(true)
+  registeredAt DateTime @default(now())
+
+  @@unique([userId, deviceId])
+  @@map("device_tokens")
+}
+
+// ==================== GEO ====================
+
+enum GeoFenceType {
+  SERVICE_AREA
+  RESTRICTED
+  SURGE_ZONE
+  AIRPORT
+  CUSTOM
+}
+
+model GeoFence {
+  id                String       @id @default(uuid())
+  name              String
+  type              GeoFenceType
+  polygon           Unsupported("geography(Polygon,4326)")
+  pricingMultiplier Float?
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@map("geo_fences")
+}
+
+model PricingConfig {
+  id                  String   @id @default(uuid())
+  vehicleType         VehicleType
+  zoneId              String?
+  baseFare            Float
+  perKmRate           Float
+  perMinuteRate       Float
+  minimumFare         Float
+  cancellationFee     Float
+  waitingFeePerMinute Float
+  freeWaitingMinutes  Int      @default(3)
+  nightMultiplier     Float    @default(1)
+  nightStartHour      Int      @default(22)
+  nightEndHour        Int      @default(6)
+  isSurgeEnabled      Boolean  @default(true)
+  surgeMultiplierLow  Float    @default(1.2)
+  surgeMultiplierMedium Float  @default(1.5)
+  surgeMultiplierHigh Float    @default(2.0)
+  surgeMultiplierExtreme Float @default(3.0)
+  currency            String   @default("USD")
+  isActive            Boolean  @default(true)
+  effectiveFrom       DateTime?
+  effectiveTo         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([vehicleType, zoneId])
+  @@map("pricing_configs")
+}
+
+// ==================== PROMO ====================
+
+model PromoCode {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  description   String
+  discountType  String    // 'percentage' or 'fixed'
+  discountValue Float
+  maxDiscount   Float?
+  minFare       Float     @default(0)
+  usageLimit    Int?
+  usedCount     Int       @default(0)
+  perUserLimit  Int       @default(1)
+  validFrom     DateTime
+  validTo       DateTime
+  firstRideOnly Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  usages     PromoUsage[]
+  metadata   PromoMetadata?
+
+  @@map("promo_codes")
+}
+
+/// Tracks per-user promo code usage for enforcing perUserLimit
+model PromoUsage {
+  id           String   @id @default(uuid())
+  promoCodeId  String
+  promoCode    PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  userId       String
+  tripId       String
+  discountAmount Float
+  appliedAt    DateTime @default(now())
+
+  @@unique([promoCodeId, userId, tripId])
+  @@index([promoCodeId, userId])
+  @@index([userId])
+  @@map("promo_usages")
+}
+
+/// Extended promo metadata (vehicle types, zones, etc.)
+model PromoMetadata {
+  id                    String   @id @default(uuid())
+  promoCodeId           String   @unique
+  promoCode             PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  applicableVehicleTypes String[] @default([])
+  applicableZones       String[] @default([])
+
+  @@map("promo_metadata")
+}
+
+// ==================== AUDIT LOG ====================
+
+/// Audit log for tracking important system events
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  userId     String?
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([action])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
