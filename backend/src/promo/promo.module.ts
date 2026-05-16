@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PromoService } from './promo.service';
 import { PromoController } from './promo.controller';
 import { PricingModule } from '../pricing/pricing.module';
+import { RedisModule } from '../redis.module';
 
 /// Promo Module - Promotional discount code management
 ///
@@ -17,7 +18,7 @@ import { PricingModule } from '../pricing/pricing.module';
 /// - GET  /promo/admin     - Admin: list all promos
 /// - POST /promo/admin     - Admin: create promo
 @Module({
-  imports: [PricingModule],
+  imports: [PricingModule, RedisModule],
   controllers: [PromoController],
   providers: [PromoService],
   exports: [PromoService],
