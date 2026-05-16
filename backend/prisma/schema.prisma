@@ -94,7 +94,7 @@ model Driver {
 model Vehicle {
   id          String   @id @default(uuid())
   driverId    String   @unique
-  driver      Driver   @relation(fields: [driverId], references: [id])
+  driver      Driver?  @relation(fields: [driverId], references: [id])
   name        String
   plateNumber String
   type        VehicleType
