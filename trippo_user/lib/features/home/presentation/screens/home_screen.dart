@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -9,6 +10,7 @@ import '../widgets/where_to_sheet.dart';
 import '../widgets/ride_request_sheet.dart';
 import '../widgets/trip_progress_sheet.dart';
 import '../../../../core/constants/app_theme.dart';
+import '../../../auth/presentation/notifiers/auth_notifier.dart';
 
 /// Home Screen - Main screen with map and ride booking
 class HomeScreen extends ConsumerStatefulWidget {
@@ -51,6 +53,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final tripState = ref.watch(tripProvider);
 
     return Scaffold(
+      drawer: _buildAppDrawer(context),
       body: Stack(
         children: [
           // Google Map
@@ -137,7 +140,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: IconButton(
               icon: const Icon(Icons.menu),
               onPressed: () {
-                // Open drawer
+                Scaffold.of(context).openDrawer();
               },
             ),
           ),
@@ -157,7 +160,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: IconButton(
               icon: const Icon(Icons.notifications_outlined),
               onPressed: () {
-                // Open notifications
+                context.go('/notifications');
               },
             ),
           ),
@@ -168,7 +171,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildBottomSheet(TripState tripState, MapLocationState mapState) {
     // Show different bottom sheets based on trip state
+    // idle = no active trip, show WhereTo sheet
     return switch (tripState) {
+      TripState.idle => const WhereToSheet(),
       TripState.searchingDriver => const RideRequestSheet(),
       TripState.driverAssigned => const TripProgressSheet(),
       TripState.driverArriving => const TripProgressSheet(),
@@ -178,7 +183,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       TripState.tripResumed => const TripProgressSheet(),
       TripState.tripCompleted => const TripProgressSheet(),
       TripState.paymentPending => const TripProgressSheet(),
-      TripState.paymentCompleted => const TripProgressSheet(),
+      TripState.paymentCompleted => const WhereToSheet(),
       TripState.tripCancelled => const WhereToSheet(),
       _ => const WhereToSheet(),
     };
@@ -199,6 +204,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         CameraUpdate.newLatLngZoom(_currentPosition!, 14.0),
       );
     }
+  }
+
+  Widget _buildAppDrawer(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(color: AppTheme.primary),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Icon(Icons.local_taxi, color: Colors.white, size: 40),
+                SizedBox(height: 8),
+                Text('Madar', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                Text('Your ride, your way', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              ],
+            ),
+          ),
+          ListTile(leading: const Icon(Icons.home), title: const Text('Home'), onTap: () { context.go('/home'); Navigator.pop(context); }),
+          ListTile(leading: const Icon(Icons.history), title: const Text('Trip History'), onTap: () { context.go('/trip-history'); Navigator.pop(context); }),
+          ListTile(leading: const Icon(Icons.account_balance_wallet), title: const Text('Wallet'), onTap: () { context.go('/wallet'); Navigator.pop(context); }),
+          ListTile(leading: const Icon(Icons.notifications_outlined), title: const Text('Notifications'), onTap: () { context.go('/notifications'); Navigator.pop(context); }),
+          ListTile(leading: const Icon(Icons.person_outline), title: const Text('Profile'), onTap: () { context.go('/profile'); Navigator.pop(context); }),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Logout', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              ref.read(authProvider.notifier).logout();
+              context.go('/login');
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   static const String _darkMapStyle = r'''

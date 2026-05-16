@@ -36,28 +36,32 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isAuth = authStatus == AuthStatus.authenticated;
       final isUnauth = authStatus == AuthStatus.unauthenticated;
+      final isLoading = authStatus == AuthStatus.loading;
       final isInitial = authStatus == AuthStatus.initial;
 
       final currentPath = state.matchedLocation;
 
       // Public routes that don't require auth
-      final isPublicRoute = currentPath == '/splash' ||
-          currentPath == '/login' ||
+      final isPublicRoute = currentPath == '/login' ||
           currentPath == '/register';
 
-      // If still checking auth, stay on splash
-      if (isInitial) {
-        return '/splash';
+      // If still checking auth (initial or loading), stay on splash
+      if (isInitial || isLoading) {
+        return currentPath == '/splash' ? null : '/splash';
       }
 
-      // If not authenticated -> allow login and register, redirect everything else
+      // If not authenticated -> go to login (allow register too)
+      // But redirect AWAY from /splash to /login
       if (isUnauth) {
+        if (currentPath == '/splash') return '/login';
         return isPublicRoute ? null : '/login';
       }
 
-      // If authenticated and on a public route -> redirect to home
-      if (isAuth && isPublicRoute) {
-        return '/home';
+      // If authenticated, redirect away from public/splash routes
+      if (isAuth) {
+        if (currentPath == '/splash' || currentPath == '/login' || currentPath == '/register') {
+          return '/home';
+        }
       }
 
       // No redirect needed

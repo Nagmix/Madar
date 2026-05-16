@@ -10,7 +10,7 @@ class TripProgressSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tripState = ref.watch(tripProvider);
-    final currentTrip = ref.watch(currentTripProvider);
+    final currentTrip = ref.read(tripProvider.notifier).currentTrip;
 
     return Container(
       decoration: const BoxDecoration(
@@ -44,6 +44,8 @@ class TripProgressSheet extends ConsumerWidget {
 
   Widget _buildStatusIndicator(TripState state) {
     final (String title, String subtitle, IconData icon, Color color) = switch (state) {
+      TripState.idle => ('Ready', 'Where would you like to go?', Icons.local_taxi, Colors.grey),
+      TripState.searchingDriver => ('Finding driver', 'Looking for nearby drivers', Icons.search, Colors.orange),
       TripState.driverAssigned => ('Driver Assigned', 'Preparing to pick you up', Icons.person, Colors.blue),
       TripState.driverArriving => ('Driver is on the way', 'Heading to your pickup location', Icons.directions_car, Colors.orange),
       TripState.driverArrived => ('Driver has arrived', 'Your driver is waiting for you', Icons.location_on, Colors.green),

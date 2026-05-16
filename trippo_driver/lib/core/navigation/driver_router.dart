@@ -48,10 +48,14 @@ final driverRouterProvider = Provider<GoRouter>((ref) {
           currentPath == '/login' ||
           currentPath == '/register';
 
-      if (isInitial) return '/splash';
+      // If still checking auth (initial or loading), stay on splash
+      if (isInitial || authStatus == DriverAuthStatus.loading) {
+        return currentPath == '/splash' ? null : '/splash';
+      }
 
-      // If not authenticated -> go to login
+      // If not authenticated -> redirect away from splash, allow login/register
       if (isUnauth) {
+        if (currentPath == '/splash') return '/login';
         return isPublicRoute ? null : '/login';
       }
 
@@ -165,4 +169,5 @@ class _DriverNotificationScreenState extends ConsumerState<_DriverNotificationSc
     );
   }
 }
+
 

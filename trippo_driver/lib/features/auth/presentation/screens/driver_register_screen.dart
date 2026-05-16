@@ -837,21 +837,23 @@ class _DriverRegisterScreenState extends ConsumerState<DriverRegisterScreen> {
       return;
     }
 
-    // Step 3: Validate documents uploaded
+    // Step 3: Documents are OPTIONAL - allow registration without them
+    // Users can upload documents later from their profile
     if (_currentStep == 2) {
       final notUploadedDocs = _documentStatuses.entries
           .where((e) => e.value == DocumentStatus.notUploaded)
           .toList();
       if (notUploadedDocs.isNotEmpty) {
+        // Show info but DO NOT block registration
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text(
-              'Please upload: ${notUploadedDocs.map((e) => e.key.replaceAll('_', ' ')).join(", ")}',
+              'Documents can be uploaded later from your profile. Proceeding...',
             ),
-            backgroundColor: AppTheme.warning,
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 3),
           ),
         );
-        return;
       }
     }
 

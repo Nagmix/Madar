@@ -8,7 +8,7 @@ class TripNotifier extends StateNotifier<TripState> {
   final Ref _ref;
   TripModel? _currentTrip;
   
-  TripNotifier(this._ref) : super(TripState.searchingDriver);
+  TripNotifier(this._ref) : super(TripState.idle);
 
   TripModel? get currentTrip => _currentTrip;
 
@@ -32,7 +32,7 @@ class TripNotifier extends StateNotifier<TripState> {
       socketService.onTripUpdate(_handleTripUpdate);
       socketService.onDriverLocationUpdate(_handleDriverLocationUpdate);
     } catch (e) {
-      state = TripState.searchingDriver;
+      state = TripState.idle;
       rethrow;
     }
   }
@@ -69,7 +69,7 @@ class TripNotifier extends StateNotifier<TripState> {
         cancelledBy: 'rider',
       );
       
-      state = TripState.tripCancelled;
+      state = TripState.idle;
       _currentTrip = _currentTrip?.copyWith(
         state: TripState.tripCancelled,
         cancellationReason: reason,
@@ -95,48 +95,34 @@ class TripNotifier extends StateNotifier<TripState> {
         review: review,
       );
       
-      _currentTrip = _currentTrip?.copyWith(
-        riderRating: rating,
-        riderReview: review,
-      );
+      state = TripState.idle;
+      _currentTrip = null;
     } catch (e) {
       rethrow;
     }
   }
 
-  /// Reset the trip state
-  void reset() {
-    state = TripState.searchingDriver;
+  /// Reset trip state to idle (after completion/cancellation)
+  void resetToIdle() {
+    state = TripState.idle;
     _currentTrip = null;
-    
-    final socketService = _ref.read(socketServiceProvider);
-    if (_currentTrip != null) {
-      socketService.leaveRoom('trip:${_currentTrip!.id}');
-    }
-    socketService.off('trip:update');
-    socketService.off('trip:driver_location');
-  }
-
-  @override
-  void dispose() {
-    reset();
-    super.dispose();
   }
 }
 
-/// Trip State Provider
+/// Trip Provider
 final tripProvider = StateNotifierProvider<TripNotifier, TripState>((ref) {
   return TripNotifier(ref);
 });
 
-/// Current Trip Provider
-final currentTripProvider = Provider<TripModel?>((ref) {
-  final tripNotifier = ref.watch(tripProvider.notifier);
-  return tripNotifier.currentTrip;
-});
-
 /// Is trip active provider
 final isTripActiveProvider = Provider<bool>((ref) {
+  final tripNotifier = ref.watch(tripProvider.notifier);
+  return tripNotifier.currentTrip != null;
+});
+
+/// Is trip in progress provider
+final isTripInProgressProvider = Provider<bool>((ref) {
   final tripState = ref.watch(tripProvider);
   return activeTripStates.contains(tripState);
 });
+

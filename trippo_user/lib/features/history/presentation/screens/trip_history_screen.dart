@@ -473,6 +473,7 @@ class _TripHistoryScreenState extends ConsumerState<TripHistoryScreen>
   /// Get display label for trip state
   String _getStateLabel(TripState state) {
     return switch (state) {
+      TripState.idle => 'IDLE',
       TripState.paymentCompleted => 'COMPLETED',
       TripState.tripCompleted => 'COMPLETED',
       TripState.tripCancelled => 'CANCELLED',

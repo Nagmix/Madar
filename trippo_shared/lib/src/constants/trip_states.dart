@@ -5,6 +5,9 @@ library;
 
 /// All possible trip states in the system
 enum TripState {
+  /// No active trip - user is browsing the map
+  idle('IDLE'),
+
   /// Initial state - searching for available driver
   searchingDriver('SEARCHING_DRIVER'),
 
@@ -45,7 +48,7 @@ enum TripState {
   static TripState fromString(String value) {
     return TripState.values.firstWhere(
       (state) => state.value == value,
-      orElse: () => TripState.searchingDriver,
+      orElse: () => TripState.idle,
     );
   }
 }
@@ -53,6 +56,9 @@ enum TripState {
 /// Valid state transitions map
 /// Key: current state, Value: list of valid next states
 const Map<TripState, List<TripState>> tripStateTransitions = {
+  TripState.idle: [
+    TripState.searchingDriver,
+  ],
   TripState.searchingDriver: [
     TripState.driverAssigned,
     TripState.tripCancelled,
@@ -90,13 +96,14 @@ const Map<TripState, List<TripState>> tripStateTransitions = {
     TripState.paymentCompleted,
   ],
   TripState.paymentCompleted: [],
-  TripState.tripCancelled: [],
+  TripState.tripCancelled: [
+    TripState.idle,
+  ],
 };
 
 /// Terminal states - no further transitions possible
 const Set<TripState> terminalStates = {
   TripState.paymentCompleted,
-  TripState.tripCancelled,
 };
 
 /// Check if a transition from [from] to [to] is valid
@@ -124,3 +131,4 @@ const Set<TripState> activeTripStates = {
   TripState.tripPaused,
   TripState.tripResumed,
 };
+
