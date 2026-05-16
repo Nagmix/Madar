@@ -73,7 +73,7 @@ export class GeoService {
 
   /// Get all active service areas (geofences of type SERVICE_AREA)
   async getServiceAreas() {
-    const serviceAreas = await this.prisma.$queryRaw`
+    const serviceAreas: any[] = await this.prisma.$queryRaw`
       SELECT 
         id,
         name,
@@ -101,7 +101,7 @@ export class GeoService {
 
   /// Get all pricing zones (geofences with pricing multipliers)
   async getZones() {
-    const zones = await this.prisma.$queryRaw`
+    const zones: any[] = await this.prisma.$queryRaw`
       SELECT 
         id,
         name,

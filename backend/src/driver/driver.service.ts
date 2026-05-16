@@ -124,7 +124,7 @@ export class DriverService {
       throw new ForbiddenException('Vehicle must be approved before going online');
     }
 
-    // Update driver status and location using PostGIS
+    // Update driver status and location
     const updatedDriver = await this.prisma.driver.update({
       where: { id: driver.id },
       data: {
@@ -133,10 +133,6 @@ export class DriverService {
         lastOnlineAt: new Date(),
         lastKnownLat: latitude,
         lastKnownLng: longitude,
-        currentLocation: {
-          // PostGIS point: ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography
-          // Stored as raw SQL via Prisma unsupported type
-        } as any,
       },
     });
 

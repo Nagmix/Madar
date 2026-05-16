@@ -10,7 +10,7 @@ export class DispatchService {
   /// Find nearby available drivers using PostGIS geospatial query
   async findNearbyDrivers(lat: number, lng: number, radiusKm: number = 50, vehicleType?: string) {
     // PostGIS query: find drivers within radius, ordered by distance
-    const drivers = await this.prisma.$queryRaw`
+    const drivers: any[] = await this.prisma.$queryRaw`
       SELECT 
         d.*,
         u.name,
