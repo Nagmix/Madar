@@ -3,6 +3,33 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { AuthGuard } from '@nestjs/passport';
 import { DriverService } from './driver.service';
 
+// ==================== DTOs ====================
+
+class UpsertDriverProfileDto {
+  isAvailable?: boolean;
+  vehicle?: {
+    name: string;
+    plateNumber: string;
+    type: string;
+    color?: string;
+    model?: string;
+    year?: string;
+    seats?: number;
+  };
+}
+
+class SetOnlineDto {
+  latitude: number;
+  longitude: number;
+}
+
+class UpdateLocationDto {
+  latitude: number;
+  longitude: number;
+  heading?: number;
+  speed?: number;
+}
+
 @ApiTags('drivers')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
@@ -55,31 +82,4 @@ export class DriverController {
       dto.speed,
     );
   }
-}
-
-// ==================== DTOs ====================
-
-class UpsertDriverProfileDto {
-  isAvailable?: boolean;
-  vehicle?: {
-    name: string;
-    plateNumber: string;
-    type: string;
-    color?: string;
-    model?: string;
-    year?: string;
-    seats?: number;
-  };
-}
-
-class SetOnlineDto {
-  latitude: number;
-  longitude: number;
-}
-
-class UpdateLocationDto {
-  latitude: number;
-  longitude: number;
-  heading?: number;
-  speed?: number;
 }

@@ -4,6 +4,49 @@ import { AuthGuard } from '@nestjs/passport';
 import { NotificationService } from './notification.service';
 import { NotificationType } from '@prisma/client';
 
+// ==================== DTOs ====================
+
+class RegisterDeviceTokenDto {
+  token: string;
+  platform: string; // 'ios' | 'android' | 'web'
+  deviceId: string;
+}
+
+class UpdateNotificationPreferencesDto {
+  channels?: {
+    push?: boolean;
+    sms?: boolean;
+    whatsapp?: boolean;
+    email?: boolean;
+    inApp?: boolean;
+  };
+  types?: {
+    TRIP_UPDATE?: boolean;
+    DRIVER_ASSIGNED?: boolean;
+    DRIVER_ARRIVING?: boolean;
+    DRIVER_ARRIVED?: boolean;
+    TRIP_STARTED?: boolean;
+    TRIP_COMPLETED?: boolean;
+    TRIP_CANCELLED?: boolean;
+    PAYMENT_RECEIVED?: boolean;
+    WALLET_UPDATE?: boolean;
+    WITHDRAWAL_STATUS?: boolean;
+    PROMOTION?: boolean;
+    SYSTEM?: boolean;
+    DOCUMENT_VERIFICATION?: boolean;
+    RATING_REMINDER?: boolean;
+  };
+  quietHours?: {
+    enabled?: boolean;
+    start?: string;
+    end?: string;
+  };
+}
+
+class MarkReadDto {
+  notificationId: string;
+}
+
 @ApiTags('notifications')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
@@ -57,47 +100,4 @@ export class NotificationController {
   async markAllAsRead(@Req() req: any) {
     return this.notificationService.markAllAsRead(req.user.id);
   }
-}
-
-// ==================== DTOs ====================
-
-class RegisterDeviceTokenDto {
-  token: string;
-  platform: string; // 'ios' | 'android' | 'web'
-  deviceId: string;
-}
-
-class UpdateNotificationPreferencesDto {
-  channels?: {
-    push?: boolean;
-    sms?: boolean;
-    whatsapp?: boolean;
-    email?: boolean;
-    inApp?: boolean;
-  };
-  types?: {
-    TRIP_UPDATE?: boolean;
-    DRIVER_ASSIGNED?: boolean;
-    DRIVER_ARRIVING?: boolean;
-    DRIVER_ARRIVED?: boolean;
-    TRIP_STARTED?: boolean;
-    TRIP_COMPLETED?: boolean;
-    TRIP_CANCELLED?: boolean;
-    PAYMENT_RECEIVED?: boolean;
-    WALLET_UPDATE?: boolean;
-    WITHDRAWAL_STATUS?: boolean;
-    PROMOTION?: boolean;
-    SYSTEM?: boolean;
-    DOCUMENT_VERIFICATION?: boolean;
-    RATING_REMINDER?: boolean;
-  };
-  quietHours?: {
-    enabled?: boolean;
-    start?: string;
-    end?: string;
-  };
-}
-
-class MarkReadDto {
-  notificationId: string;
 }

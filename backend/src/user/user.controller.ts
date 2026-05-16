@@ -3,6 +3,22 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { AuthGuard } from '@nestjs/passport';
 import { UserService } from './user.service';
 
+// ==================== DTOs ====================
+
+class UpdateProfileDto {
+  name?: string;
+  email?: string;
+  phone?: string;
+  countryCode?: string;
+  profileImageUrl?: string;
+  preferredLanguage?: string;
+  preferredCurrency?: string;
+}
+
+class DeleteAccountDto {
+  reason?: string;
+}
+
 @ApiTags('users')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
@@ -33,20 +49,4 @@ export class UserController {
   async deleteAccount(@Req() req: any, @Body() dto?: DeleteAccountDto) {
     return this.userService.deleteAccount(req.user.id, dto?.reason);
   }
-}
-
-// ==================== DTOs ====================
-
-class UpdateProfileDto {
-  name?: string;
-  email?: string;
-  phone?: string;
-  countryCode?: string;
-  profileImageUrl?: string;
-  preferredLanguage?: string;
-  preferredCurrency?: string;
-}
-
-class DeleteAccountDto {
-  reason?: string;
 }

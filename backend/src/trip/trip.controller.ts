@@ -6,6 +6,38 @@ import { AuthGuard } from '@nestjs/passport';
 import { TripService } from './trip.service';
 import { TripState } from '@prisma/client';
 
+// DTOs
+class CreateTripDto {
+  pickupLatitude: number;
+  pickupLongitude: number;
+  pickupAddress: string;
+  dropoffLatitude: number;
+  dropoffLongitude: number;
+  dropoffAddress: string;
+  vehicleType: string;
+  promoCode?: string;
+  note?: string;
+}
+
+class CancelTripDto {
+  reason: string;
+}
+
+class RateTripDto {
+  rating: number;
+  review?: string;
+  tags?: string[];
+}
+
+class EstimateFareDto {
+  pickupLatitude: number;
+  pickupLongitude: number;
+  dropoffLatitude: number;
+  dropoffLongitude: number;
+  vehicleType: string;
+  promoCode?: string;
+}
+
 @ApiTags('trips')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
@@ -81,36 +113,4 @@ export class TripController {
   async estimateFare(@Body() dto: EstimateFareDto) {
     return this.tripService.estimateFare(dto);
   }
-}
-
-// DTOs
-class CreateTripDto {
-  pickupLatitude: number;
-  pickupLongitude: number;
-  pickupAddress: string;
-  dropoffLatitude: number;
-  dropoffLongitude: number;
-  dropoffAddress: string;
-  vehicleType: string;
-  promoCode?: string;
-  note?: string;
-}
-
-class CancelTripDto {
-  reason: string;
-}
-
-class RateTripDto {
-  rating: number;
-  review?: string;
-  tags?: string[];
-}
-
-class EstimateFareDto {
-  pickupLatitude: number;
-  pickupLongitude: number;
-  dropoffLatitude: number;
-  dropoffLongitude: number;
-  vehicleType: string;
-  promoCode?: string;
 }

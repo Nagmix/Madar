@@ -4,6 +4,14 @@ import { AuthGuard } from '@nestjs/passport';
 import { WalletService } from './wallet.service';
 import { TransactionType } from '@prisma/client';
 
+// ==================== DTOs ====================
+
+class WithdrawalRequestDto {
+  amount: number;
+  method: string; // BANK_TRANSFER | MOBILE_WALLET | CASH
+  accountDetails: string;
+}
+
 @ApiTags('wallet')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
@@ -51,12 +59,4 @@ export class WalletController {
   ) {
     return this.walletService.getSettlements(req.user.id, parseInt(page), parseInt(pageSize));
   }
-}
-
-// ==================== DTOs ====================
-
-class WithdrawalRequestDto {
-  amount: number;
-  method: string; // BANK_TRANSFER | MOBILE_WALLET | CASH
-  accountDetails: string;
 }
