@@ -424,7 +424,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen>
         children: [
           // Pulsing state indicator
           AnimatedBuilder(
-            animation: _pulseAnimation,
+            listenable: _pulseAnimation,
             builder: (context, child) {
               return Transform.scale(
                 scale: _pulseAnimation.value,

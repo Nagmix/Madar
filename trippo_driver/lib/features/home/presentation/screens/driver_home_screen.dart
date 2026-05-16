@@ -26,7 +26,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   Future<void> _getCurrentLocation() async {
     try {
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        desiredAccuracy: LocationAccuracy.high,
       );
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
