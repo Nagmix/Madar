@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "dev.hyderali.trippo_user"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 34
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -23,7 +23,7 @@ android {
     defaultConfig {
         applicationId = "dev.hyderali.trippo_user"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
