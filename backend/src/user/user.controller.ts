@@ -1,21 +1,44 @@
 import { Controller, Get, Put, Delete, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { IsString, IsEmail, IsOptional } from 'class-validator';
 import { UserService } from './user.service';
 
 // ==================== DTOs ====================
 
 class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsEmail()
   email?: string;
+
+  @IsOptional()
+  @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
   countryCode?: string;
+
+  @IsOptional()
+  @IsString()
   profileImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   preferredLanguage?: string;
+
+  @IsOptional()
+  @IsString()
   preferredCurrency?: string;
 }
 
 class DeleteAccountDto {
+  @IsOptional()
+  @IsString()
   reason?: string;
 }
 

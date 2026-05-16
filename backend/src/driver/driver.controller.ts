@@ -1,32 +1,71 @@
 import { Controller, Get, Post, Put, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { IsBoolean, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { DriverService } from './driver.service';
 
 // ==================== DTOs ====================
 
+class VehicleDto {
+  @IsString()
+  name: string;
+
+  @IsString()
+  plateNumber: string;
+
+  @IsString()
+  type: string;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
+
+  @IsOptional()
+  @IsString()
+  year?: string;
+
+  @IsOptional()
+  @IsNumber()
+  seats?: number;
+}
+
 class UpsertDriverProfileDto {
+  @IsOptional()
+  @IsBoolean()
   isAvailable?: boolean;
-  vehicle?: {
-    name: string;
-    plateNumber: string;
-    type: string;
-    color?: string;
-    model?: string;
-    year?: string;
-    seats?: number;
-  };
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => VehicleDto)
+  vehicle?: VehicleDto;
 }
 
 class SetOnlineDto {
+  @IsNumber()
   latitude: number;
+
+  @IsNumber()
   longitude: number;
 }
 
 class UpdateLocationDto {
+  @IsNumber()
   latitude: number;
+
+  @IsNumber()
   longitude: number;
+
+  @IsOptional()
+  @IsNumber()
   heading?: number;
+
+  @IsOptional()
+  @IsNumber()
   speed?: number;
 }
 

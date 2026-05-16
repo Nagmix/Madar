@@ -1,49 +1,137 @@
 import { Controller, Get, Post, Put, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { IsString, IsBoolean, IsOptional, ValidateNested, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
 import { NotificationService } from './notification.service';
 import { NotificationType } from '@prisma/client';
 
 // ==================== DTOs ====================
 
 class RegisterDeviceTokenDto {
+  @IsString()
   token: string;
-  platform: string; // 'ios' | 'android' | 'web'
+
+  @IsIn(['ios', 'android', 'web'])
+  platform: string;
+
+  @IsString()
   deviceId: string;
 }
 
+class NotificationChannelsDto {
+  @IsOptional()
+  @IsBoolean()
+  push?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  sms?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  whatsapp?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  email?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  inApp?: boolean;
+}
+
+class NotificationTypesDto {
+  @IsOptional()
+  @IsBoolean()
+  TRIP_UPDATE?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  DRIVER_ASSIGNED?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  DRIVER_ARRIVING?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  DRIVER_ARRIVED?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  TRIP_STARTED?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  TRIP_COMPLETED?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  TRIP_CANCELLED?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  PAYMENT_RECEIVED?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  WALLET_UPDATE?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  WITHDRAWAL_STATUS?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  PROMOTION?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  SYSTEM?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  DOCUMENT_VERIFICATION?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  RATING_REMINDER?: boolean;
+}
+
+class QuietHoursDto {
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  start?: string;
+
+  @IsOptional()
+  @IsString()
+  end?: string;
+}
+
 class UpdateNotificationPreferencesDto {
-  channels?: {
-    push?: boolean;
-    sms?: boolean;
-    whatsapp?: boolean;
-    email?: boolean;
-    inApp?: boolean;
-  };
-  types?: {
-    TRIP_UPDATE?: boolean;
-    DRIVER_ASSIGNED?: boolean;
-    DRIVER_ARRIVING?: boolean;
-    DRIVER_ARRIVED?: boolean;
-    TRIP_STARTED?: boolean;
-    TRIP_COMPLETED?: boolean;
-    TRIP_CANCELLED?: boolean;
-    PAYMENT_RECEIVED?: boolean;
-    WALLET_UPDATE?: boolean;
-    WITHDRAWAL_STATUS?: boolean;
-    PROMOTION?: boolean;
-    SYSTEM?: boolean;
-    DOCUMENT_VERIFICATION?: boolean;
-    RATING_REMINDER?: boolean;
-  };
-  quietHours?: {
-    enabled?: boolean;
-    start?: string;
-    end?: string;
-  };
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NotificationChannelsDto)
+  channels?: NotificationChannelsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NotificationTypesDto)
+  types?: NotificationTypesDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => QuietHoursDto)
+  quietHours?: QuietHoursDto;
 }
 
 class MarkReadDto {
+  @IsString()
   notificationId: string;
 }
 

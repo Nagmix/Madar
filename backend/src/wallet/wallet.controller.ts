@@ -1,14 +1,21 @@
 import { Controller, Get, Post, Query, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { IsString, IsNumber, IsIn, Min } from 'class-validator';
 import { WalletService } from './wallet.service';
 import { TransactionType } from '@prisma/client';
 
 // ==================== DTOs ====================
 
 class WithdrawalRequestDto {
+  @IsNumber()
+  @Min(1)
   amount: number;
-  method: string; // BANK_TRANSFER | MOBILE_WALLET | CASH
+
+  @IsIn(['BANK_TRANSFER', 'MOBILE_WALLET', 'CASH'])
+  method: string;
+
+  @IsString()
   accountDetails: string;
 }
 

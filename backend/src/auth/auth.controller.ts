@@ -1,40 +1,76 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { IsString, IsEmail, IsOptional, MinLength } from 'class-validator';
 import { AuthService } from './auth.service';
 
 // DTOs - must be defined before the controller class
 class RegisterDto {
+  @IsString()
   name: string;
+
+  @IsEmail()
   email: string;
+
+  @IsString()
+  @MinLength(8)
   password: string;
+
+  @IsOptional()
+  @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
   countryCode?: string;
+
+  @IsOptional()
+  @IsString()
   fcmToken?: string;
 }
 
 class LoginDto {
+  @IsEmail()
   email: string;
+
+  @IsString()
   password: string;
+
+  @IsOptional()
+  @IsString()
   fcmToken?: string;
+
+  @IsOptional()
+  @IsString()
   deviceId?: string;
 }
 
 class SendOtpDto {
+  @IsString()
   phone: string;
+
+  @IsString()
   countryCode: string;
 }
 
 class VerifyOtpDto {
+  @IsString()
   phone: string;
+
+  @IsString()
   otp: string;
+
+  @IsOptional()
+  @IsString()
   fcmToken?: string;
 }
 
 class RefreshTokenDto {
+  @IsString()
   refreshToken: string;
 }
 
 class ForgotPasswordDto {
+  @IsEmail()
   email: string;
 }
 

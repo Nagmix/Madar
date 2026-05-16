@@ -3,38 +3,81 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { IsString, IsNumber, IsOptional, IsArray, Min, Max } from 'class-validator';
 import { TripService } from './trip.service';
 import { TripState } from '@prisma/client';
 
 // DTOs
 class CreateTripDto {
+  @IsNumber()
   pickupLatitude: number;
+
+  @IsNumber()
   pickupLongitude: number;
+
+  @IsString()
   pickupAddress: string;
+
+  @IsNumber()
   dropoffLatitude: number;
+
+  @IsNumber()
   dropoffLongitude: number;
+
+  @IsString()
   dropoffAddress: string;
+
+  @IsString()
   vehicleType: string;
+
+  @IsOptional()
+  @IsString()
   promoCode?: string;
+
+  @IsOptional()
+  @IsString()
   note?: string;
 }
 
 class CancelTripDto {
+  @IsString()
   reason: string;
 }
 
 class RateTripDto {
+  @IsNumber()
+  @Min(1)
+  @Max(5)
   rating: number;
+
+  @IsOptional()
+  @IsString()
   review?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   tags?: string[];
 }
 
 class EstimateFareDto {
+  @IsNumber()
   pickupLatitude: number;
+
+  @IsNumber()
   pickupLongitude: number;
+
+  @IsNumber()
   dropoffLatitude: number;
+
+  @IsNumber()
   dropoffLongitude: number;
+
+  @IsString()
   vehicleType: string;
+
+  @IsOptional()
+  @IsString()
   promoCode?: string;
 }
 
