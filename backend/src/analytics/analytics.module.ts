@@ -1,5 +1,6 @@
 import { Module, Logger } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { RedisModule } from '../redis.module';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
 import { AnalyticsProcessor } from './analytics.processor';
@@ -8,6 +9,8 @@ import { AnalyticsProcessor } from './analytics.processor';
 /// Uses Prisma for DB queries, Redis for caching, BullMQ for scheduled pre-computation
 @Module({
   imports: [
+    // Redis module for caching
+    RedisModule,
     // BullMQ queue for daily analytics pre-computation
     BullModule.registerQueue({
       name: 'analytics',
