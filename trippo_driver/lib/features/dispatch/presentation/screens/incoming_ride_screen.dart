@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 
-/// Incoming Ride Request Screen - Full screen notification for driver
-class IncomingRideRequestScreen extends StatelessWidget {
+/// شاشة طلب رحلة وارد - مدار
+class IncomingRideRequestScreen extends StatefulWidget {
   final DriverDispatchNotification request;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
@@ -15,162 +15,279 @@ class IncomingRideRequestScreen extends StatelessWidget {
   });
 
   @override
+  State<IncomingRideRequestScreen> createState() =>
+      _IncomingRideRequestScreenState();
+}
+
+class _IncomingRideRequestScreenState extends State<IncomingRideRequestScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late AnimationController _countdownController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+
+    _countdownController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: widget.request.responseTimeoutSeconds),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _countdownController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: MadarTheme.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(MadarTheme.space24),
           child: Column(
             children: [
-              const SizedBox(height: 20),
-              
-              // New ride indicator
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.notifications_active, color: Colors.green, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'NEW RIDE REQUEST',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+              const SizedBox(height: MadarTheme.space16),
+
+              // Pulsing "رحلة جديدة!" badge
+              AnimatedBuilder(
+                animation: _pulseController,
+                builder: (_, __) {
+                  return Transform.scale(
+                    scale: 1.0 + (_pulseController.value * 0.05),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: MadarTheme.space24,
+                        vertical: MadarTheme.space8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: MadarTheme.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(MadarTheme.radiusFull),
+                        border: Border.all(
+                          color: MadarTheme.primary.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedBuilder(
+                            animation: _pulseController,
+                            builder: (_, __) {
+                              return Opacity(
+                                opacity: 0.6 + (_pulseController.value * 0.4),
+                                child: const Icon(
+                                  Icons.notifications_active,
+                                  color: MadarTheme.primary,
+                                  size: 20,
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'رحلة جديدة!',
+                            style: TextStyle(
+                              fontFamily: MadarTheme.fontFamily,
+                              color: MadarTheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: MadarTheme.space24),
+
+              // Rider name
+              Text(
+                widget.request.riderName,
+                style: const TextStyle(
+                  fontFamily: MadarTheme.fontFamily,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: MadarTheme.textPrimary,
                 ),
               ),
-              
-              const SizedBox(height: 32),
-              
-              // Rider info
-              Text(
-                request.riderName,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              
-              const SizedBox(height: 32),
-              
+
+              const SizedBox(height: MadarTheme.space24),
+
               // Pickup location
-              _buildLocationRow(
-                icon: Icons.radio_button_checked,
-                color: Colors.green,
-                title: 'Pickup',
-                address: request.pickupAddress,
-                distance: '${request.distanceToPickupKm.toStringAsFixed(1)} km away',
-                eta: '${request.estimatedEtaMinutes} min',
+              MadarLocationPoint(
+                isPickup: true,
+                address: widget.request.pickupAddress,
+                detail:
+                    '${widget.request.distanceToPickupKm.toStringAsFixed(1)} كم • ${widget.request.estimatedEtaMinutes} د',
               ),
-              
-              const SizedBox(height: 16),
-              
+
+              const SizedBox(height: MadarTheme.space8),
+
               // Dotted line
               Padding(
-                padding: const EdgeInsets.only(left: 12),
+                padding: const EdgeInsets.only(right: 5),
                 child: Row(
                   children: List.generate(
-                    10,
+                    12,
                     (_) => Expanded(
                       child: Container(
-                        height: 1,
-                        color: Colors.grey[300],
+                        height: 2,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          color: MadarTheme.textHint.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 16),
-              
+
+              const SizedBox(height: MadarTheme.space8),
+
               // Dropoff location
-              _buildLocationRow(
-                icon: Icons.location_on,
-                color: Colors.red,
-                title: 'Destination',
-                address: request.dropoffAddress,
-                distance: '',
-                eta: '',
+              MadarLocationPoint(
+                isPickup: false,
+                address: widget.request.dropoffAddress,
               ),
-              
+
               const Spacer(),
-              
+
               // Estimated fare
               Container(
-                padding: const EdgeInsets.all(16),
+                width: double.infinity,
+                padding: const EdgeInsets.all(MadarTheme.space20),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [
+                      MadarTheme.primary.withOpacity(0.08),
+                      MadarTheme.primaryLight.withOpacity(0.15),
+                    ],
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                  ),
+                  borderRadius: BorderRadius.circular(MadarTheme.radiusLg),
+                  border: Border.all(
+                    color: MadarTheme.primary.withOpacity(0.2),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Estimated Fare', style: TextStyle(fontSize: 16)),
-                    Text(
-                      '\$${request.estimatedFare.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                    const Text(
+                      'الأجرة المتوقعة',
+                      style: TextStyle(
+                        fontFamily: MadarTheme.fontFamily,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: MadarTheme.textPrimary,
                       ),
+                    ),
+                    MadarPriceTag(
+                      amount: widget.request.estimatedFare,
+                      fontSize: 28,
+                      color: MadarTheme.primary,
                     ),
                   ],
                 ),
               ),
-              
-              const SizedBox(height: 24),
-              
+
+              const SizedBox(height: MadarTheme.space24),
+
               // Accept/Decline buttons
               Row(
                 children: [
                   // Decline button
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: onDecline,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 56,
+                      child: OutlinedButton(
+                        onPressed: widget.onDecline,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: MadarTheme.error,
+                          side: const BorderSide(
+                            color: MadarTheme.error,
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(MadarTheme.radiusLg),
+                          ),
+                          textStyle: const TextStyle(
+                            fontFamily: MadarTheme.fontFamily,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
+                        child: const Text('رفض'),
                       ),
-                      child: const Text('Decline', style: TextStyle(fontSize: 16)),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: MadarTheme.space16),
                   // Accept button
                   Expanded(
                     flex: 2,
-                    child: ElevatedButton(
-                      onPressed: onAccept,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Accept Ride', style: TextStyle(fontSize: 16)),
+                    child: MadarGradientButton(
+                      label: 'قبول',
+                      icon: Icons.check_circle,
+                      height: 56,
+                      gradientColors: const [
+                        MadarTheme.success,
+                        Color(0xFF059669),
+                      ],
+                      onPressed: widget.onAccept,
                     ),
                   ),
                 ],
               ),
-              
-              const SizedBox(height: 16),
-              
-              // Timeout indicator
-              Text(
-                'Respond within ${request.responseTimeoutSeconds}s',
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                textAlign: TextAlign.center,
+
+              const SizedBox(height: MadarTheme.space16),
+
+              // Timer countdown indicator
+              AnimatedBuilder(
+                animation: _countdownController,
+                builder: (_, __) {
+                  final remaining = (1 - _countdownController.value) *
+                      widget.request.responseTimeoutSeconds;
+                  final seconds = remaining.ceil();
+                  return Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: 1 - _countdownController.value,
+                          backgroundColor: MadarTheme.textHint.withOpacity(0.2),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            seconds > 10
+                                ? MadarTheme.primary
+                                : seconds > 5
+                                    ? MadarTheme.warning
+                                    : MadarTheme.error,
+                          ),
+                          minHeight: 4,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'الوقت المتبقي: $seconds ثانية',
+                        style: TextStyle(
+                          fontFamily: MadarTheme.fontFamily,
+                          color: MadarTheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -178,40 +295,5 @@ class IncomingRideRequestScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildLocationRow({
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String address,
-    required String distance,
-    required String eta,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-              Text(address, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-            ],
-          ),
-        ),
-        if (distance.isNotEmpty || eta.isNotEmpty)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (eta.isNotEmpty)
-                Text(eta, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.green)),
-              if (distance.isNotEmpty)
-                Text(distance, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-            ],
-          ),
-      ],
-    );
-  }
 }
+

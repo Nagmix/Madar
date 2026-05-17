@@ -1,5 +1,5 @@
 name: trippo_driver
-description: Trippo Ride-Hailing Platform - Driver App
+description: مدار سائق - تطبيق السائق للنقل الذكي
 version: 2.0.0+2
 publish_to: 'none'
 
@@ -10,7 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Shared package with models, services, and utilities
   trippo_shared:
     path: ../trippo_shared
 
@@ -18,7 +17,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  # Open-source map (replaces google_maps_flutter)
   flutter_map: ^6.1.0
   latlong2: ^0.9.1
   lottie: ^2.6.0
@@ -30,19 +28,19 @@ dependencies:
   # Navigation
   go_router: ^13.0.0
 
-  # Network - NestJS Backend Integration
+  # Network
   dio: ^5.4.0
   socket_io_client: ^2.0.3+1
 
   # Location & Maps
   geolocator: ^10.1.0
 
-  # Auth - Firebase only for push notifications, not core backend
+  # Auth
   firebase_core: ^2.24.2
   firebase_messaging: ^14.7.9
   flutter_local_notifications: ^17.2.4
 
-  # Storage & Security
+  # Storage
   flutter_secure_storage: ^9.0.0
   shared_preferences: ^2.2.2
 
@@ -55,8 +53,6 @@ dependencies:
   equatable: ^2.0.5
   image_picker: ^1.0.7
   cached_network_image: ^3.3.0
-
-  # Notifications UI
   elegant_notification: ^1.10.1
 
 dev_dependencies:
@@ -75,17 +71,8 @@ flutter:
     - assets/imgs/
     - assets/animations/
 
-
   fonts:
-    - family: MadarFont
+    - family: Cairo
       fonts:
-        - asset: assets/fonts/Light.ttf
-          weight: 300
-        - asset: assets/fonts/Regular.ttf
-          weight: 400
-        - asset: assets/fonts/Medium.ttf
-          weight: 500
-        - asset: assets/fonts/SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Bold.ttf
-          weight: 700
+        - asset: assets/fonts/Cairo-Variable.ttf
+

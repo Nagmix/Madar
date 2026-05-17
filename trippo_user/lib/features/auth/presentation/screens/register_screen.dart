@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trippo_shared/trippo_shared.dart';
 import '../notifiers/auth_notifier.dart';
-import '../../../../core/constants/app_theme.dart';
 
 /// شاشة إنشاء حساب - مدار
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -34,7 +34,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ref.read(authProvider.notifier).register(
             name: _nameController.text.trim(),
             email: _emailController.text.trim(),
-            phone: _phoneController.text.trim(),
             password: _passwordController.text,
           );
     }
@@ -45,161 +44,208 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
+      backgroundColor: MadarTheme.background,
+      appBar: MadarAppBar(
+        title: '',
+        backgroundColor: MadarTheme.background,
+        showBack: true,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: MadarTheme.space24),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // زر العودة
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => context.go('/login'),
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppTheme.surfaceVariant,
-                    ),
+                // شعار مدار
+                const Center(
+                  child: MadarLogo(
+                    size: 70,
+                    showText: true,
+                    color: MadarTheme.primary,
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: MadarTheme.space24),
 
                 // العنوان
-                const Text(
+                Text(
                   'إنشاء حساب جديد',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                        color: MadarTheme.textPrimary,
+                      ),
+                  textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: MadarTheme.space8),
 
                 Text(
                   'انضم إلى مدار واستمتع برحلات مريحة',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: MadarTheme.textSecondary,
+                      ),
+                  textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: MadarTheme.space32),
 
                 // الاسم الكامل
-                TextFormField(
+                MadarTextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'الاسم الكامل',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
+                  label: 'الاسم الكامل',
+                  hint: 'أدخل اسمك الكامل',
+                  prefixIcon: Icons.person_outline,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'يرجى إدخال الاسم';
+                    if (value == null || value.isEmpty) {
+                      return 'يرجى إدخال الاسم';
+                    }
                     return null;
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: MadarTheme.space16),
 
                 // البريد الإلكتروني
-                TextFormField(
+                MadarTextField(
                   controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
+                  label: 'البريد الإلكتروني',
+                  hint: 'أدخل بريدك الإلكتروني',
+                  prefixIcon: Icons.email_outlined,
                   textDirection: TextDirection.ltr,
-                  decoration: const InputDecoration(
-                    labelText: 'البريد الإلكتروني',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
+                  keyboardType: TextInputType.emailAddress,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'يرجى إدخال البريد الإلكتروني';
+                    if (value == null || value.isEmpty) {
+                      return 'يرجى إدخال البريد الإلكتروني';
+                    }
                     if (!value.contains('@')) return 'البريد الإلكتروني غير صالح';
                     return null;
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: MadarTheme.space16),
 
-                // رقم الهاتف
-                TextFormField(
+                // رقم الهاتف (حقل إضافي لا يرسل للمصادقة)
+                MadarTextField(
                   controller: _phoneController,
-                  keyboardType: TextInputType.phone,
+                  label: 'رقم الهاتف',
+                  hint: 'أدخل رقم هاتفك',
+                  prefixIcon: Icons.phone_outlined,
                   textDirection: TextDirection.ltr,
-                  decoration: const InputDecoration(
-                    labelText: 'رقم الهاتف',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                  ),
+                  keyboardType: TextInputType.phone,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'يرجى إدخال رقم الهاتف';
+                    if (value == null || value.isEmpty) {
+                      return 'يرجى إدخال رقم الهاتف';
+                    }
                     return null;
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: MadarTheme.space16),
 
                 // كلمة المرور
-                TextFormField(
+                MadarTextField(
                   controller: _passwordController,
+                  label: 'كلمة المرور',
+                  hint: 'أدخل كلمة مرور قوية',
+                  prefixIcon: Icons.lock_outline,
                   obscureText: _obscurePassword,
                   textDirection: TextDirection.ltr,
-                  decoration: InputDecoration(
-                    labelText: 'كلمة المرور',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: MadarTheme.textSecondary,
+                      size: 22,
                     ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'يرجى إدخال كلمة المرور';
-                    if (value.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                    if (value == null || value.isEmpty) {
+                      return 'يرجى إدخال كلمة المرور';
+                    }
+                    if (value.length < 6) {
+                      return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                    }
                     return null;
                   },
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: MadarTheme.space32),
 
                 // زر إنشاء الحساب
-                ElevatedButton(
-                  onPressed: authState.status == AuthStatus.loading ? null : _register,
-                  child: authState.status == AuthStatus.loading
-                      ? const SizedBox(
-                          width: 24, height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                        )
-                      : const Text('إنشاء حساب'),
+                MadarGradientButton(
+                  label: 'إنشاء حساب',
+                  onPressed: authState.status == AuthStatus.loading
+                      ? null
+                      : _register,
+                  isLoading: authState.status == AuthStatus.loading,
+                  gradientColors: const [
+                    MadarTheme.primary,
+                    MadarTheme.primaryDark,
+                  ],
                 ),
 
+                // رسالة الخطأ
                 if (authState.error != null) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: MadarTheme.space16),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(MadarTheme.space12),
                     decoration: BoxDecoration(
-                      color: AppTheme.error.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                      color: MadarTheme.error.withOpacity(0.08),
+                      borderRadius:
+                          BorderRadius.circular(MadarTheme.radiusMd),
+                      border: Border.all(
+                        color: MadarTheme.error.withOpacity(0.2),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, color: AppTheme.error, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(authState.error!, style: const TextStyle(color: AppTheme.error, fontSize: 13))),
+                        const Icon(Icons.error_outline,
+                            color: MadarTheme.error, size: 20),
+                        const SizedBox(width: MadarTheme.space8),
+                        Expanded(
+                          child: Text(
+                            authState.error!,
+                            style: const TextStyle(
+                              color: MadarTheme.error,
+                              fontSize: 13,
+                              fontFamily: MadarTheme.fontFamily,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ],
 
-                const SizedBox(height: 24),
+                const SizedBox(height: MadarTheme.space24),
 
                 // تسجيل الدخول
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('لديك حساب بالفعل؟', style: TextStyle(color: Colors.grey[600])),
+                    Text(
+                      'لديك حساب بالفعل؟',
+                      style: TextStyle(
+                        color: MadarTheme.textSecondary,
+                        fontFamily: MadarTheme.fontFamily,
+                        fontSize: 14,
+                      ),
+                    ),
                     TextButton(
                       onPressed: () => context.go('/login'),
-                      child: const Text('تسجيل الدخول', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700)),
+                      child: Text(
+                        'تسجيل الدخول',
+                        style: TextStyle(
+                          color: MadarTheme.primary,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: MadarTheme.fontFamily,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -211,3 +257,4 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 }
+

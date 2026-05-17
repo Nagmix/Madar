@@ -27,12 +27,20 @@ export 'src/services/offline_service.dart';
 export 'src/services/wallet_service.dart' hide Settlement;
 export 'src/services/dispatch_scoring_service.dart' hide DriverScore;
 
-// Map Services (Open-Source - No Google Maps dependency)
+// Map Services (Open-Source)
 export 'src/services/map/map_service.dart';
 export 'src/services/map/osrm_routing_service.dart';
 export 'src/services/map/nominatim_service.dart';
 export 'src/services/map/route_parser.dart';
 export 'src/services/map/tile_provider.dart';
+
+// Theme & Design System
+export 'src/theme/madar_theme.dart';
+
+// Widgets
+export 'src/widgets/madar_widgets.dart';
+export 'src/widgets/madar_loading.dart';
+export 'src/widgets/trippo_map.dart';
 
 // Utils
 export 'src/utils/kalman_filter.dart';
@@ -44,6 +52,3 @@ export 'src/constants/trip_states.dart';
 export 'src/constants/api_constants.dart';
 export 'src/constants/app_constants.dart';
 
-// Widgets
-export 'src/widgets/trippo_map.dart';
-export 'src/widgets/trippo_loading.dart';

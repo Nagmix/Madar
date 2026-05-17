@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_theme.dart';
+import 'package:trippo_shared/trippo_shared.dart';
 import '../../../auth/presentation/notifiers/driver_auth_notifier.dart';
 
 class DriverSplashScreen extends ConsumerStatefulWidget {
@@ -16,14 +16,32 @@ class _DriverSplashScreenState extends ConsumerState<DriverSplashScreen>
   late AnimationController _logoController;
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
+  late AnimationController _textController;
+  late Animation<double> _textOpacity;
 
   @override
   void initState() {
     super.initState();
-    _logoController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
-    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(CurvedAnimation(parent: _logoController, curve: Curves.elasticOut));
-    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _logoController, curve: Curves.easeOut));
-    _logoController.forward();
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
+    );
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
+    );
+    _textController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _textController, curve: Curves.easeIn),
+    );
+    _logoController.forward().then((_) {
+      if (mounted) _textController.forward();
+    });
     _initializeApp();
   }
 
@@ -36,6 +54,7 @@ class _DriverSplashScreenState extends ConsumerState<DriverSplashScreen>
   @override
   void dispose() {
     _logoController.dispose();
+    _textController.dispose();
     super.dispose();
   }
 
@@ -52,36 +71,101 @@ class _DriverSplashScreenState extends ConsumerState<DriverSplashScreen>
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFFFF6D00), Color(0xFFE65100), Color(0xFFBF360C)]),
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              MadarTheme.accent,
+              MadarTheme.accentDark,
+              Color(0xFFBF360C),
+            ],
+          ),
         ),
         child: SafeArea(
           child: Center(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              FadeTransition(
-                opacity: _logoOpacity,
-                child: ScaleTransition(
-                  scale: _logoScale,
-                  child: Container(
-                    width: 120, height: 120,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))]),
-                    child: const Center(child: Icon(Icons.local_taxi, size: 60, color: Color(0xFFFF6D00))),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Animated Logo
+                FadeTransition(
+                  opacity: _logoOpacity,
+                  child: ScaleTransition(
+                    scale: _logoScale,
+                    child: MadarLogo(
+                      size: 120,
+                      showText: true,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              const Text('مدار', style: TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w800, letterSpacing: 2)),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                child: const Text('سائق', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(height: 40),
-              CircularProgressIndicator(strokeWidth: 3, valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.8))),
-            ]),
+
+                const SizedBox(height: MadarTheme.space12),
+
+                // "سائق" Badge
+                FadeTransition(
+                  opacity: _logoOpacity,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: MadarTheme.space24,
+                      vertical: MadarTheme.space8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(MadarTheme.radiusFull),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Text(
+                      'سائق',
+                      style: TextStyle(
+                        fontFamily: MadarTheme.fontFamily,
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: MadarTheme.space48),
+
+                // Tagline with fade animation
+                FadeTransition(
+                  opacity: _textOpacity,
+                  child: const Text(
+                    'نقلك الذكي',
+                    style: TextStyle(
+                      fontFamily: MadarTheme.fontFamily,
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: MadarTheme.space40),
+
+                // Loading indicator
+                SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
+

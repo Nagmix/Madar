@@ -842,7 +842,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   selectedColor: AppTheme.primary.withOpacity(0.15),
                   side: BorderSide(
                     color:
-                        isSelected ? AppTheme.primary : AppTheme.divider,
+                        isSelected ? AppTheme.primary : AppTheme.dividerColor,
                   ),
                 );
               }).toList(),

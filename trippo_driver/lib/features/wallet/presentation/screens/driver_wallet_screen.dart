@@ -1,27 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trippo_shared/trippo_shared.dart';
-
 import '../../../../core/constants/app_theme.dart';
 import '../notifiers/driver_wallet_notifier.dart';
 
-/// Driver Wallet Screen
-///
-/// Full-featured wallet screen for drivers showing balance, earnings,
-/// transactions, settlements, commission info, and withdrawal options.
+/// شاشة المحفظة - مدار
 class DriverWalletScreen extends ConsumerStatefulWidget {
   const DriverWalletScreen({super.key});
 
   @override
-  ConsumerState<DriverWalletScreen> createState() =>
-      _DriverWalletScreenState();
+  ConsumerState<DriverWalletScreen> createState() => _DriverWalletScreenState();
 }
 
 class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
   @override
   void initState() {
     super.initState();
-    // Load all wallet data on first build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(driverWalletProvider.notifier).loadAll();
     });
@@ -36,64 +30,75 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
     final walletState = ref.watch(driverWalletProvider);
 
     return Scaffold(
+      backgroundColor: MadarTheme.background,
       appBar: AppBar(
-        title: const Text('Wallet'),
+        backgroundColor: MadarTheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'المحفظة',
+          style: TextStyle(
+            fontFamily: MadarTheme.fontFamily,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () => _showTransactionHistory(context),
-            tooltip: 'Transaction History',
+            tooltip: 'سجل المعاملات',
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: _onRefresh,
-        color: AppTheme.primary,
+        color: MadarTheme.primary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(AppTheme.spacing16),
+          padding: const EdgeInsets.all(MadarTheme.space16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Error banner
               if (walletState.error != null) ...[
                 _buildErrorBanner(walletState.error!),
-                const SizedBox(height: AppTheme.spacing16),
+                const SizedBox(height: MadarTheme.space16),
               ],
 
               // Balance Card
               _buildBalanceCard(walletState),
 
-              const SizedBox(height: AppTheme.spacing20),
+              const SizedBox(height: MadarTheme.space20),
 
               // Quick Actions Row
               _buildQuickActions(context),
 
-              const SizedBox(height: AppTheme.spacing20),
+              const SizedBox(height: MadarTheme.space20),
 
               // Earnings Summary
               _buildEarningsSummary(walletState),
 
-              const SizedBox(height: AppTheme.spacing20),
+              const SizedBox(height: MadarTheme.space20),
 
               // Commission Info Card
               _buildCommissionInfoCard(),
 
-              const SizedBox(height: AppTheme.spacing20),
+              const SizedBox(height: MadarTheme.space20),
 
               // Recent Transactions
               _buildRecentTransactions(walletState),
 
-              const SizedBox(height: AppTheme.spacing20),
+              const SizedBox(height: MadarTheme.space20),
 
               // Recent Settlements
               if (walletState.settlements.isNotEmpty) ...[
                 _buildRecentSettlements(walletState),
-                const SizedBox(height: AppTheme.spacing20),
+                const SizedBox(height: MadarTheme.space20),
               ],
 
-              // Bottom padding for scroll
-              const SizedBox(height: AppTheme.spacing32),
+              const SizedBox(height: MadarTheme.space32),
             ],
           ),
         ),
@@ -106,29 +111,30 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
   Widget _buildErrorBanner(String error) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppTheme.spacing12),
+      padding: const EdgeInsets.all(MadarTheme.space12),
       decoration: BoxDecoration(
-        color: AppTheme.error.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+        color: MadarTheme.error.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
+        border: Border.all(color: MadarTheme.error.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: AppTheme.error, size: 20),
-          const SizedBox(width: AppTheme.spacing8),
+          const Icon(Icons.error_outline, color: MadarTheme.error, size: 20),
+          const SizedBox(width: MadarTheme.space8),
           Expanded(
             child: Text(
               error,
               style: const TextStyle(
-                color: AppTheme.error,
+                color: MadarTheme.error,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
+                fontFamily: MadarTheme.fontFamily,
               ),
             ),
           ),
           InkWell(
             onTap: _onRefresh,
-            child: const Icon(Icons.refresh, color: AppTheme.error, size: 20),
+            child: const Icon(Icons.refresh, color: MadarTheme.error, size: 20),
           ),
         ],
       ),
@@ -142,18 +148,18 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppTheme.spacing24),
+      padding: const EdgeInsets.all(MadarTheme.space24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppTheme.secondary, AppTheme.secondaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [MadarTheme.primary, MadarTheme.primaryDark],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
         ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        borderRadius: BorderRadius.circular(MadarTheme.radiusXl),
         boxShadow: [
-          BoxShadow(
-            color: AppTheme.secondary.withOpacity(0.4),
-            blurRadius: 20,
+          MadarTheme.shadow(
+            color: MadarTheme.primary.withOpacity(0.4),
+            blur: 20,
             offset: const Offset(0, 8),
           ),
         ],
@@ -164,67 +170,54 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
           // Available Balance label
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet,
-                  color: Colors.white54, size: 18),
+              const Icon(Icons.account_balance_wallet, color: Colors.white54, size: 18),
               const SizedBox(width: 6),
               const Text(
-                'Available Balance',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+                'الرصيد المتاح',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontFamily: MadarTheme.fontFamily,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '\$${(wallet?.availableBalance ?? 0).toStringAsFixed(2)}',
+            'ر.س ${(wallet?.availableBalance ?? 0).toStringAsFixed(2)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 36,
               fontWeight: FontWeight.bold,
+              fontFamily: MadarTheme.fontFamily,
             ),
           ),
-          const SizedBox(height: AppTheme.spacing20),
+          const SizedBox(height: MadarTheme.space20),
 
-          // Pending Balance & Total Earnings row
+          // Pending & Total row
           Row(
             children: [
               _buildBalanceInfoItem(
-                'Pending',
-                '\$${(wallet?.pendingBalance ?? 0).toStringAsFixed(2)}',
+                'قيد الانتظار',
+                'ر.س ${(wallet?.pendingBalance ?? 0).toStringAsFixed(2)}',
                 Icons.schedule,
               ),
-              const SizedBox(width: AppTheme.spacing24),
+              const SizedBox(width: MadarTheme.space24),
               _buildBalanceInfoItem(
-                'Total Earnings',
-                '\$${(wallet?.totalEarnings ?? 0).toStringAsFixed(2)}',
+                'إجمالي الأرباح',
+                'ر.س ${(wallet?.totalEarnings ?? 0).toStringAsFixed(2)}',
                 Icons.trending_up,
               ),
             ],
           ),
-          const SizedBox(height: AppTheme.spacing20),
+          const SizedBox(height: MadarTheme.space20),
 
-          // Withdraw Funds button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => _showWithdrawSheet(context),
-              icon: const Icon(Icons.send, size: 18),
-              label: const Text('Withdraw Funds'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppTheme.secondary,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppTheme.radiusMedium),
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ),
+          // Withdraw button
+          MadarGradientButton(
+            label: 'سحب أموال',
+            icon: Icons.send,
+            gradientColors: [Colors.white, Colors.white],
+            onPressed: () => _showWithdrawSheet(context),
           ),
         ],
       ),
@@ -240,16 +233,22 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style:
-                      const TextStyle(color: Colors.white60, fontSize: 11)),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 11,
+                  fontFamily: MadarTheme.fontFamily,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
+                  fontFamily: MadarTheme.fontFamily,
                 ),
               ),
             ],
@@ -266,41 +265,42 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Quick Actions',
+          'إجراءات سريعة',
           style: TextStyle(
+            fontFamily: MadarTheme.fontFamily,
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: MadarTheme.textPrimary,
           ),
         ),
-        const SizedBox(height: AppTheme.spacing12),
+        const SizedBox(height: MadarTheme.space12),
         Row(
           children: [
             _buildQuickActionButton(
               icon: Icons.send,
-              label: 'Withdraw',
-              color: AppTheme.primary,
+              label: 'سحب',
+              color: MadarTheme.primary,
               onTap: () => _showWithdrawSheet(context),
             ),
-            const SizedBox(width: AppTheme.spacing12),
+            const SizedBox(width: MadarTheme.space12),
             _buildQuickActionButton(
               icon: Icons.receipt_long,
-              label: 'Settlements',
-              color: AppTheme.info,
+              label: 'التسويات',
+              color: MadarTheme.primary,
               onTap: () => _showSettlements(context),
             ),
-            const SizedBox(width: AppTheme.spacing12),
+            const SizedBox(width: MadarTheme.space12),
             _buildQuickActionButton(
               icon: Icons.description_outlined,
-              label: 'Statements',
-              color: AppTheme.accent,
+              label: 'الكشوف',
+              color: MadarTheme.accent,
               onTap: () => _showStatements(context),
             ),
-            const SizedBox(width: AppTheme.spacing12),
+            const SizedBox(width: MadarTheme.space12),
             _buildQuickActionButton(
               icon: Icons.card_giftcard,
-              label: 'Incentives',
-              color: AppTheme.warning,
+              label: 'الحوافز',
+              color: MadarTheme.warning,
               onTap: () => _showIncentives(context),
             ),
           ],
@@ -318,15 +318,15 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
     return Expanded(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
         child: Container(
           padding: const EdgeInsets.symmetric(
-            vertical: AppTheme.spacing16,
-            horizontal: AppTheme.spacing8,
+            vertical: MadarTheme.space16,
+            horizontal: MadarTheme.space8,
           ),
           decoration: BoxDecoration(
             color: color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+            borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
             border: Border.all(color: color.withOpacity(0.2)),
           ),
           child: Column(
@@ -343,6 +343,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
               Text(
                 label,
                 style: TextStyle(
+                  fontFamily: MadarTheme.fontFamily,
                   color: color,
                   fontWeight: FontWeight.w600,
                   fontSize: 11,
@@ -367,35 +368,36 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Earnings Summary',
+          'ملخص الأرباح',
           style: TextStyle(
+            fontFamily: MadarTheme.fontFamily,
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: MadarTheme.textPrimary,
           ),
         ),
-        const SizedBox(height: AppTheme.spacing12),
+        const SizedBox(height: MadarTheme.space12),
         Row(
           children: [
             _buildEarningsCard(
-              title: 'Total Earnings',
+              title: 'إجمالي الأرباح',
               amount: wallet?.totalEarnings ?? 0,
               icon: Icons.trending_up,
-              color: AppTheme.primary,
+              color: MadarTheme.primary,
             ),
-            const SizedBox(width: AppTheme.spacing12),
+            const SizedBox(width: MadarTheme.space12),
             _buildEarningsCard(
-              title: 'Commissions',
+              title: 'العمولات',
               amount: wallet?.totalCommissions ?? 0,
               icon: Icons.percent,
-              color: AppTheme.accent,
+              color: MadarTheme.accent,
             ),
-            const SizedBox(width: AppTheme.spacing12),
+            const SizedBox(width: MadarTheme.space12),
             _buildEarningsCard(
-              title: 'Incentives',
+              title: 'الحوافز',
               amount: wallet?.totalIncentives ?? 0,
               icon: Icons.card_giftcard,
-              color: AppTheme.info,
+              color: MadarTheme.success,
             ),
           ],
         ),
@@ -411,18 +413,8 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
   }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(AppTheme.spacing12),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+        padding: const EdgeInsets.all(MadarTheme.space12),
+        decoration: MadarTheme.cardDecoration(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -433,20 +425,22 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: MadarTheme.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
+                    fontFamily: MadarTheme.fontFamily,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              '\$${amount.toStringAsFixed(2)}',
+              'ر.س ${amount.toStringAsFixed(2)}',
               style: TextStyle(
                 color: color,
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: FontWeight.w700,
+                fontFamily: MadarTheme.fontFamily,
               ),
             ),
           ],
@@ -458,18 +452,16 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
   // ==================== Commission Info Card ====================
 
   Widget _buildCommissionInfoCard() {
-    final commissionRate =
-        (AppConstants.driverCommissionRate * 100).toInt();
-    final incentiveRate =
-        (AppConstants.driverIncentiveBonusRate * 100).toInt();
+    final commissionRate = (AppConstants.driverCommissionRate * 100).toInt();
+    final incentiveRate = (AppConstants.driverIncentiveBonusRate * 100).toInt();
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppTheme.spacing16),
+      padding: const EdgeInsets.all(MadarTheme.space16),
       decoration: BoxDecoration(
-        color: AppTheme.info.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.info.withOpacity(0.2)),
+        color: MadarTheme.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
+        border: Border.all(color: MadarTheme.primary.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -479,68 +471,47 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppTheme.info.withOpacity(0.15),
-                  borderRadius:
-                      BorderRadius.circular(AppTheme.radiusSmall),
+                  color: MadarTheme.primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(MadarTheme.radiusSm),
                 ),
-                child: const Icon(Icons.info_outline,
-                    color: AppTheme.info, size: 18),
+                child: const Icon(Icons.info_outline, color: MadarTheme.primary, size: 18),
               ),
-              const SizedBox(width: AppTheme.spacing8),
+              const SizedBox(width: MadarTheme.space8),
               const Text(
-                'Commission Info',
+                'معلومات العمولة',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
+                  color: MadarTheme.textPrimary,
+                  fontFamily: MadarTheme.fontFamily,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppTheme.spacing12),
+          const SizedBox(height: MadarTheme.space12),
           Row(
             children: [
               Expanded(
-                child: _buildCommissionDetail(
-                  'Your Rate',
-                  '$commissionRate%',
-                  AppTheme.info,
-                ),
+                child: _buildCommissionDetail('نسبتك', '$commissionRate%', MadarTheme.primary),
               ),
-              Container(
-                width: 1,
-                height: 36,
-                color: AppTheme.divider,
-              ),
+              Container(width: 1, height: 36, color: MadarTheme.textHint.withOpacity(0.3)),
               Expanded(
-                child: _buildCommissionDetail(
-                  'Incentive Bonus',
-                  '$incentiveRate%',
-                  AppTheme.primary,
-                ),
+                child: _buildCommissionDetail('مكافأة الأداء', '$incentiveRate%', MadarTheme.success),
               ),
-              Container(
-                width: 1,
-                height: 36,
-                color: AppTheme.divider,
-              ),
+              Container(width: 1, height: 36, color: MadarTheme.textHint.withOpacity(0.3)),
               Expanded(
-                child: _buildCommissionDetail(
-                  'You Keep',
-                  '${100 - commissionRate}%',
-                  AppTheme.success,
-                ),
+                child: _buildCommissionDetail('تحتفظ بـ', '${100 - commissionRate}%', MadarTheme.accent),
               ),
             ],
           ),
-          const SizedBox(height: AppTheme.spacing12),
+          const SizedBox(height: MadarTheme.space12),
           Text(
-            'Commission is calculated as $commissionRate% of each trip fare. '
-            'You earn an additional $incentiveRate% bonus for maintaining high ratings.',
+            'تُحسب العمولة بنسبة $commissionRate% من أجرة كل رحلة. تحصل على مكافأة إضافية $incentiveRate% للحفاظ على تقييم عالٍ.',
             style: const TextStyle(
               fontSize: 12,
-              color: AppTheme.textSecondary,
+              color: MadarTheme.textSecondary,
               height: 1.4,
+              fontFamily: MadarTheme.fontFamily,
             ),
           ),
         ],
@@ -548,8 +519,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
     );
   }
 
-  Widget _buildCommissionDetail(
-      String label, String value, Color color) {
+  Widget _buildCommissionDetail(String label, String value, Color color) {
     return Column(
       children: [
         Text(
@@ -558,6 +528,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: color,
+            fontFamily: MadarTheme.fontFamily,
           ),
         ),
         const SizedBox(height: 2),
@@ -565,7 +536,8 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
           label,
           style: const TextStyle(
             fontSize: 11,
-            color: AppTheme.textSecondary,
+            color: MadarTheme.textSecondary,
+            fontFamily: MadarTheme.fontFamily,
           ),
         ),
       ],
@@ -584,32 +556,36 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Recent Transactions',
+              'المعاملات الأخيرة',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: MadarTheme.textPrimary,
+                fontFamily: MadarTheme.fontFamily,
               ),
             ),
             if (transactions.isNotEmpty)
               TextButton(
                 onPressed: () => _showTransactionHistory(context),
-                child: const Text('View All'),
+                child: const Text(
+                  'عرض الكل',
+                  style: TextStyle(fontFamily: MadarTheme.fontFamily),
+                ),
               ),
           ],
         ),
-        const SizedBox(height: AppTheme.spacing8),
+        const SizedBox(height: MadarTheme.space8),
         if (state.isLoading && transactions.isEmpty)
           const Center(
             child: Padding(
-              padding: EdgeInsets.all(AppTheme.spacing32),
-              child: CircularProgressIndicator(color: AppTheme.primary),
+              padding: EdgeInsets.all(MadarTheme.space32),
+              child: CircularProgressIndicator(color: MadarTheme.primary),
             ),
           )
         else if (transactions.isEmpty)
-          _buildEmptyState(
+          MadarEmptyState(
             icon: Icons.receipt_long_outlined,
-            message: 'No transactions yet',
+            title: 'لا توجد معاملات بعد',
           )
         else
           ...transactions.take(5).map((tx) => _buildTransactionItem(tx)),
@@ -623,22 +599,15 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
         tx.type == TransactionType.refund ||
         tx.type == TransactionType.cancellationFee;
 
-    final color = isCredit ? AppTheme.success : AppTheme.error;
+    final color = isCredit ? MadarTheme.success : MadarTheme.error;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacing8),
+      padding: const EdgeInsets.only(bottom: MadarTheme.space8),
       child: Container(
-        padding: const EdgeInsets.all(AppTheme.spacing12),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+        padding: const EdgeInsets.all(MadarTheme.space12),
+        decoration: MadarTheme.cardDecoration(
+          radius: MadarTheme.radiusMd,
+          elevation: MadarTheme.elevationLow,
         ),
         child: Row(
           children: [
@@ -647,8 +616,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
-                borderRadius:
-                    BorderRadius.circular(AppTheme.radiusSmall),
+                borderRadius: BorderRadius.circular(MadarTheme.radiusSm),
               ),
               child: Icon(
                 _getTransactionIcon(tx.type),
@@ -656,7 +624,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
                 size: 20,
               ),
             ),
-            const SizedBox(width: AppTheme.spacing12),
+            const SizedBox(width: MadarTheme.space12),
 
             // Description & Date
             Expanded(
@@ -668,7 +636,8 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
                     style: const TextStyle(
                       fontWeight: FontWeight.w500,
                       fontSize: 13,
-                      color: AppTheme.textPrimary,
+                      color: MadarTheme.textPrimary,
+                      fontFamily: MadarTheme.fontFamily,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -677,8 +646,9 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
                   Text(
                     _formatDate(tx.createdAt),
                     style: const TextStyle(
-                      color: AppTheme.textHint,
+                      color: MadarTheme.textHint,
                       fontSize: 11,
+                      fontFamily: MadarTheme.fontFamily,
                     ),
                   ),
                 ],
@@ -687,11 +657,12 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
 
             // Amount
             Text(
-              '${isCredit ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
+              '${isCredit ? '+' : '-'}ر.س ${tx.amount.toStringAsFixed(2)}',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: color,
                 fontSize: 14,
+                fontFamily: MadarTheme.fontFamily,
               ),
             ),
           ],
@@ -721,20 +692,24 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Recent Settlements',
+              'التسويات الأخيرة',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: MadarTheme.textPrimary,
+                fontFamily: MadarTheme.fontFamily,
               ),
             ),
             TextButton(
               onPressed: () => _showSettlements(context),
-              child: const Text('View All'),
+              child: const Text(
+                'عرض الكل',
+                style: TextStyle(fontFamily: MadarTheme.fontFamily),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: AppTheme.spacing8),
+        const SizedBox(height: MadarTheme.space8),
         ...state.settlements.take(3).map((s) => _buildSettlementItem(s)),
       ],
     );
@@ -745,19 +720,12 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
     final statusLabel = _getSettlementStatusLabel(settlement.status);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacing8),
+      padding: const EdgeInsets.only(bottom: MadarTheme.space8),
       child: Container(
-        padding: const EdgeInsets.all(AppTheme.spacing12),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+        padding: const EdgeInsets.all(MadarTheme.space12),
+        decoration: MadarTheme.cardDecoration(
+          radius: MadarTheme.radiusMd,
+          elevation: MadarTheme.elevationLow,
         ),
         child: Row(
           children: [
@@ -766,8 +734,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: statusColor.withOpacity(0.1),
-                borderRadius:
-                    BorderRadius.circular(AppTheme.radiusSmall),
+                borderRadius: BorderRadius.circular(MadarTheme.radiusSm),
               ),
               child: Icon(
                 _getSettlementStatusIcon(settlement.status),
@@ -775,7 +742,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
                 size: 20,
               ),
             ),
-            const SizedBox(width: AppTheme.spacing12),
+            const SizedBox(width: MadarTheme.space12),
 
             // Period & details
             Expanded(
@@ -783,19 +750,21 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Period: ${settlement.period}',
+                    'الفترة: ${settlement.period}',
                     style: const TextStyle(
                       fontWeight: FontWeight.w500,
                       fontSize: 13,
-                      color: AppTheme.textPrimary,
+                      color: MadarTheme.textPrimary,
+                      fontFamily: MadarTheme.fontFamily,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Net: \$${settlement.netAmount.toStringAsFixed(2)}',
+                    'الصافي: ر.س ${settlement.netAmount.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      color: AppTheme.textSecondary,
+                      color: MadarTheme.textSecondary,
                       fontSize: 12,
+                      fontFamily: MadarTheme.fontFamily,
                     ),
                   ),
                 ],
@@ -804,14 +773,10 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
 
             // Status badge
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: statusColor.withOpacity(0.1),
-                borderRadius:
-                    BorderRadius.circular(AppTheme.radiusSmall),
+                borderRadius: BorderRadius.circular(MadarTheme.radiusSm),
               ),
               child: Text(
                 statusLabel,
@@ -819,6 +784,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
                   color: statusColor,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
+                  fontFamily: MadarTheme.fontFamily,
                 ),
               ),
             ),
@@ -828,17 +794,16 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
     );
   }
 
-  Color _getSettlementStatusColor(SettlementStatus status) =>
-      switch (status) {
-        SettlementStatus.pending => AppTheme.warning,
-        SettlementStatus.processing => AppTheme.info,
-        SettlementStatus.settled => AppTheme.success,
+  Color _getSettlementStatusColor(SettlementStatus status) => switch (status) {
+        SettlementStatus.pending => MadarTheme.warning,
+        SettlementStatus.processing => MadarTheme.primary,
+        SettlementStatus.settled => MadarTheme.success,
       };
 
   String _getSettlementStatusLabel(SettlementStatus status) => switch (status) {
-        SettlementStatus.pending => 'Pending',
-        SettlementStatus.processing => 'Processing',
-        SettlementStatus.settled => 'Settled',
+        SettlementStatus.pending => 'قيد الانتظار',
+        SettlementStatus.processing => 'قيد المعالجة',
+        SettlementStatus.settled => 'تم التسوية',
       };
 
   IconData _getSettlementStatusIcon(SettlementStatus status) => switch (status) {
@@ -846,32 +811,6 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
         SettlementStatus.processing => Icons.sync,
         SettlementStatus.settled => Icons.check_circle,
       };
-
-  // ==================== Empty State ====================
-
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String message,
-  }) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacing32),
-        child: Column(
-          children: [
-            Icon(icon, size: 48, color: Colors.grey[300]),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              style: const TextStyle(
-                color: AppTheme.textHint,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // ==================== Helpers ====================
 
@@ -905,8 +844,9 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppTheme.radiusXLarge)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(MadarTheme.radiusXxl),
+        ),
       ),
       builder: (context) => const _DriverWithdrawSheet(),
     );
@@ -944,10 +884,10 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
 
     return Padding(
       padding: EdgeInsets.only(
-        left: AppTheme.spacing24,
-        right: AppTheme.spacing24,
-        top: AppTheme.spacing24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacing24,
+        left: MadarTheme.space24,
+        right: MadarTheme.space24,
+        top: MadarTheme.space24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + MadarTheme.space24,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -959,11 +899,12 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Request Withdrawal',
+                  'طلب سحب',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: MadarTheme.textPrimary,
+                    fontFamily: MadarTheme.fontFamily,
                   ),
                 ),
                 IconButton(
@@ -973,110 +914,106 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
               ],
             ),
 
-            const SizedBox(height: AppTheme.spacing16),
+            const SizedBox(height: MadarTheme.space16),
 
             // Available balance display
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(AppTheme.spacing16),
+              padding: const EdgeInsets.all(MadarTheme.space16),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+                color: MadarTheme.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
+                border: Border.all(color: MadarTheme.primary.withOpacity(0.2)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Available',
+                    'المتاح',
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppTheme.textSecondary,
+                      color: MadarTheme.textSecondary,
+                      fontFamily: MadarTheme.fontFamily,
                     ),
                   ),
                   Text(
-                    '\$${availableBalance.toStringAsFixed(2)}',
+                    'ر.س ${availableBalance.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primary,
+                      color: MadarTheme.primary,
+                      fontFamily: MadarTheme.fontFamily,
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: AppTheme.spacing16),
+            const SizedBox(height: MadarTheme.space16),
 
             // Min/Max info
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacing12,
-                vertical: AppTheme.spacing8,
+                horizontal: MadarTheme.space12,
+                vertical: MadarTheme.space8,
               ),
               decoration: BoxDecoration(
-                color: AppTheme.warning.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                color: MadarTheme.warning.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(MadarTheme.radiusSm),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline,
-                      color: AppTheme.warning, size: 16),
+                  const Icon(Icons.info_outline, color: MadarTheme.warning, size: 16),
                   const SizedBox(width: 6),
                   Text(
-                    'Min: \$${AppConstants.minimumWithdrawalAmount.toStringAsFixed(0)} • '
-                    'Max: \$${AppConstants.maximumWithdrawalAmount.toStringAsFixed(0)}',
+                    'الحد الأدنى: ر.س ${AppConstants.minimumWithdrawalAmount.toStringAsFixed(0)} • '
+                    'الحد الأقصى: ر.س ${AppConstants.maximumWithdrawalAmount.toStringAsFixed(0)}',
                     style: const TextStyle(
-                      color: AppTheme.warning,
+                      color: MadarTheme.warning,
                       fontSize: 12,
+                      fontFamily: MadarTheme.fontFamily,
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: AppTheme.spacing16),
+            const SizedBox(height: MadarTheme.space16),
 
             // Amount field
-            TextField(
+            MadarTextField(
+              label: 'المبلغ',
+              hint: 'أدخل مبلغ السحب',
               controller: _amountController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: 'Amount',
-                prefixText: '\$ ',
-                hintText: 'Enter withdrawal amount',
-                border: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppTheme.radiusMedium),
-                ),
-              ),
+              prefixIcon: Icons.attach_money,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textDirection: TextDirection.ltr,
             ),
 
-            const SizedBox(height: AppTheme.spacing20),
+            const SizedBox(height: MadarTheme.space20),
 
             // Withdrawal method selection
             const Text(
-              'Withdrawal Method',
+              'طريقة السحب',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: AppTheme.textPrimary,
+                color: MadarTheme.textPrimary,
+                fontFamily: MadarTheme.fontFamily,
               ),
             ),
-            const SizedBox(height: AppTheme.spacing8),
+            const SizedBox(height: MadarTheme.space8),
             ...WithdrawalMethod.values.map((method) => Container(
-                  margin: const EdgeInsets.only(bottom: AppTheme.spacing8),
+                  margin: const EdgeInsets.only(bottom: MadarTheme.space8),
                   decoration: BoxDecoration(
                     color: _selectedMethod == method
-                        ? AppTheme.primary.withOpacity(0.06)
-                        : AppTheme.background,
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusMedium),
+                        ? MadarTheme.primary.withOpacity(0.06)
+                        : MadarTheme.background,
+                    borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
                     border: Border.all(
                       color: _selectedMethod == method
-                          ? AppTheme.primary.withOpacity(0.3)
-                          : AppTheme.divider,
+                          ? MadarTheme.primary.withOpacity(0.3)
+                          : MadarTheme.textHint.withOpacity(0.3),
                     ),
                   ),
                   child: RadioListTile<WithdrawalMethod>(
@@ -1089,89 +1026,70 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
                           _getMethodIcon(method),
                           size: 20,
                           color: _selectedMethod == method
-                              ? AppTheme.primary
-                              : AppTheme.textSecondary,
+                              ? MadarTheme.primary
+                              : MadarTheme.textSecondary,
                         ),
                         const SizedBox(width: 8),
-                        Text(_getMethodLabel(method)),
+                        Text(
+                          _getMethodLabel(method),
+                          style: const TextStyle(fontFamily: MadarTheme.fontFamily),
+                        ),
                       ],
                     ),
                     subtitle: Text(
                       _getMethodDescription(method),
                       style: const TextStyle(
                         fontSize: 11,
-                        color: AppTheme.textHint,
+                        color: MadarTheme.textHint,
+                        fontFamily: MadarTheme.fontFamily,
                       ),
                     ),
                     contentPadding: EdgeInsets.zero,
                     dense: true,
-                    activeColor: AppTheme.primary,
+                    activeColor: MadarTheme.primary,
                   ),
                 )),
 
-            const SizedBox(height: AppTheme.spacing16),
+            const SizedBox(height: MadarTheme.space16),
 
             // Account details field
-            TextField(
+            MadarTextField(
+              label: _getAccountLabel(),
+              hint: _getAccountHint(),
               controller: _accountController,
-              decoration: InputDecoration(
-                labelText: _getAccountLabel(),
-                hintText: _getAccountHint(),
-                border: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppTheme.radiusMedium),
-                ),
-              ),
+              prefixIcon: Icons.account_balance,
+              textDirection: TextDirection.ltr,
             ),
 
             // Local error
             if (_localError != null) ...[
-              const SizedBox(height: AppTheme.spacing12),
+              const SizedBox(height: MadarTheme.space12),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(AppTheme.spacing8),
+                padding: const EdgeInsets.all(MadarTheme.space8),
                 decoration: BoxDecoration(
-                  color: AppTheme.error.withOpacity(0.08),
-                  borderRadius:
-                      BorderRadius.circular(AppTheme.radiusSmall),
+                  color: MadarTheme.error.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(MadarTheme.radiusSm),
                 ),
                 child: Text(
                   _localError!,
                   style: const TextStyle(
-                    color: AppTheme.error,
+                    color: MadarTheme.error,
                     fontSize: 12,
+                    fontFamily: MadarTheme.fontFamily,
                   ),
                 ),
               ),
             ],
 
-            const SizedBox(height: AppTheme.spacing24),
+            const SizedBox(height: MadarTheme.space24),
 
             // Submit button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _submitWithdrawal,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusMedium),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Submit Withdrawal Request'),
-              ),
+            MadarGradientButton(
+              label: 'تأكيد طلب السحب',
+              isLoading: _isLoading,
+              gradientColors: const [MadarTheme.primary, MadarTheme.primaryDark],
+              onPressed: _isLoading ? null : _submitWithdrawal,
             ),
           ],
         ),
@@ -1186,46 +1104,42 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
       };
 
   String _getMethodLabel(WithdrawalMethod method) => switch (method) {
-        WithdrawalMethod.bankTransfer => 'Bank Transfer',
-        WithdrawalMethod.mobileWallet => 'Mobile Wallet',
-        WithdrawalMethod.cash => 'Cash Pickup',
+        WithdrawalMethod.bankTransfer => 'تحويل بنكي',
+        WithdrawalMethod.mobileWallet => 'محفظة إلكترونية',
+        WithdrawalMethod.cash => 'استلام نقدي',
       };
 
   String _getMethodDescription(WithdrawalMethod method) => switch (method) {
-        WithdrawalMethod.bankTransfer =>
-          'Transfer to your bank account (1-3 business days)',
-        WithdrawalMethod.mobileWallet =>
-          'Instant transfer to mobile wallet',
-        WithdrawalMethod.cash =>
-          'Pick up cash from authorized location',
+        WithdrawalMethod.bankTransfer => 'تحويل لحسابك البنكي (1-3 أيام عمل)',
+        WithdrawalMethod.mobileWallet => 'تحويل فوري للمحفظة الإلكترونية',
+        WithdrawalMethod.cash => 'استلام من موقع معتمد',
       };
 
   String _getAccountLabel() => switch (_selectedMethod) {
-        WithdrawalMethod.bankTransfer => 'IBAN / Account Number',
-        WithdrawalMethod.mobileWallet => 'Mobile Wallet Number',
-        WithdrawalMethod.cash => 'ID Number',
+        WithdrawalMethod.bankTransfer => 'رقم الآيبان / الحساب',
+        WithdrawalMethod.mobileWallet => 'رقم المحفظة',
+        WithdrawalMethod.cash => 'رقم الهوية',
       };
 
   String _getAccountHint() => switch (_selectedMethod) {
-        WithdrawalMethod.bankTransfer => 'e.g. SA0380000000608010167519',
-        WithdrawalMethod.mobileWallet => 'e.g. 05XXXXXXXX',
-        WithdrawalMethod.cash => 'e.g. 1234567890',
+        WithdrawalMethod.bankTransfer => 'مثال: SA0380000000608010167519',
+        WithdrawalMethod.mobileWallet => 'مثال: 05XXXXXXXX',
+        WithdrawalMethod.cash => 'مثال: 1234567890',
       };
 
   Future<void> _submitWithdrawal() async {
     final amount = double.tryParse(_amountController.text) ?? 0;
     final accountDetails = _accountController.text.trim();
 
-    // Validate inputs
     if (amount <= 0) {
-      setState(() => _localError = 'Please enter a valid amount');
+      setState(() => _localError = 'يرجى إدخال مبلغ صالح');
       return;
     }
 
     if (amount < AppConstants.minimumWithdrawalAmount) {
       setState(() {
         _localError =
-            'Minimum withdrawal amount is \$${AppConstants.minimumWithdrawalAmount.toStringAsFixed(0)}';
+            'الحد الأدنى للسحب ر.س ${AppConstants.minimumWithdrawalAmount.toStringAsFixed(0)}';
       });
       return;
     }
@@ -1233,13 +1147,13 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
     if (amount > AppConstants.maximumWithdrawalAmount) {
       setState(() {
         _localError =
-            'Maximum withdrawal amount is \$${AppConstants.maximumWithdrawalAmount.toStringAsFixed(0)}';
+            'الحد الأقصى للسحب ر.س ${AppConstants.maximumWithdrawalAmount.toStringAsFixed(0)}';
       });
       return;
     }
 
     if (accountDetails.isEmpty) {
-      setState(() => _localError = 'Please enter account details');
+      setState(() => _localError = 'يرجى إدخال تفاصيل الحساب');
       return;
     }
 
@@ -1262,20 +1176,22 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Withdrawal request submitted successfully'),
-            backgroundColor: AppTheme.success,
+            content: const Text(
+              'تم تقديم طلب السحب بنجاح',
+              style: TextStyle(fontFamily: MadarTheme.fontFamily),
+            ),
+            backgroundColor: MadarTheme.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(AppTheme.radiusMedium),
+              borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
             ),
           ),
         );
       } else {
-        // Show error from notifier state
         final error = ref.read(driverWalletProvider).error;
-        setState(() => _localError = error ?? 'Withdrawal request failed');
+        setState(() => _localError = error ?? 'فشل طلب السحب');
       }
     }
   }
 }
+

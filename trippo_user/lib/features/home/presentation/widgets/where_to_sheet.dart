@@ -4,7 +4,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../map/presentation/notifiers/map_notifier.dart';
 import '../../../trip/presentation/notifiers/trip_notifier.dart';
-import '../../../../core/constants/app_theme.dart';
 
 /// ورقة اختيار الوجهة - مدار
 class WhereToSheet extends ConsumerStatefulWidget {
@@ -28,21 +27,29 @@ class _WhereToSheetState extends ConsumerState<WhereToSheet> {
 
   Future<void> _searchPlaces(String query) async {
     if (query.length < 2) {
-      setState(() { _searchResults = []; _isSearching = false; });
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
       return;
     }
     setState(() => _isSearching = true);
     try {
-      final results = await ref.read(mapLocationProvider.notifier).searchPlaces(query);
-      setState(() { _searchResults = results; _isSearching = false; });
+      final results =
+          await ref.read(mapLocationProvider.notifier).searchPlaces(query);
+      setState(() {
+        _searchResults = results;
+        _isSearching = false;
+      });
     } catch (e) {
       setState(() => _isSearching = false);
     }
   }
 
   void _selectDestination(PlaceResult place) {
-    ref.read(mapLocationProvider.notifier).setDropoffLocation(place.location, place.shortAddress);
-    Navigator.pop(context);
+    ref
+        .read(mapLocationProvider.notifier)
+        .setDropoffLocation(place.location, place.shortAddress);
   }
 
   @override
@@ -51,144 +58,337 @@ class _WhereToSheetState extends ConsumerState<WhereToSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24)), boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 20, offset: Offset(0, -4))]),
-      child: Column(children: [
-        Center(child: Container(margin: const EdgeInsets.only(top: 8), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: TextField(
-            controller: _searchController,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: 'ابحث عن وجهتك...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchController.text.isNotEmpty ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchController.clear(); setState(() => _searchResults = []); }) : null,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              filled: true, fillColor: Colors.grey[100],
-            ),
-            onChanged: _searchPlaces,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(MadarTheme.radiusXxl),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 20,
+            offset: Offset(0, -4),
           ),
-        ),
-        if (mapState.pickupAddress != null)
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: _buildLocationPoints(mapState)),
-        Expanded(
-          child: _isSearching
-              ? const Center(child: CircularProgressIndicator())
-              : _searchResults.isNotEmpty
-                  ? ListView.builder(itemCount: _searchResults.length, itemBuilder: (context, index) => _buildSearchResultItem(_searchResults[index]))
-                  : _buildSavedPlaces(),
-        ),
-        if (mapState.dropoffLocation != null) ...[
-          _buildVehicleSelection(),
-          _buildRequestButton(mapState),
         ],
-      ]),
+      ),
+      child: Column(
+        children: [
+          // مقبض السحب
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: MadarTheme.space12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: MadarTheme.textHint.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(MadarTheme.radiusFull),
+              ),
+            ),
+          ),
+
+          // حقل البحث
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: MadarTheme.background,
+                borderRadius: BorderRadius.circular(MadarTheme.radiusLg),
+                border: Border.all(
+                  color: MadarTheme.primary.withOpacity(0.1),
+                ),
+              ),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(
+                  fontFamily: MadarTheme.fontFamily,
+                  fontSize: 15,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'ابحث عن وجهتك...',
+                  hintStyle: const TextStyle(
+                    fontFamily: MadarTheme.fontFamily,
+                    color: MadarTheme.textHint,
+                  ),
+                  prefixIcon: const Icon(Icons.search,
+                      color: MadarTheme.primary, size: 22),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchResults = []);
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                ),
+                onChanged: (val) {
+                  _searchPlaces(val);
+                  setState(() {});
+                },
+              ),
+            ),
+          ),
+
+          // نقاط الانطلاق والوصول
+          if (mapState.pickupAddress != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildLocationPoints(mapState),
+            ),
+
+          // نتائج البحث
+          Expanded(
+            child: _isSearching
+                ? const Center(
+                    child: CircularProgressIndicator(
+                        color: MadarTheme.primary))
+                : _searchResults.isNotEmpty
+                    ? ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        itemCount: _searchResults.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) =>
+                            _buildSearchResultItem(_searchResults[index]),
+                      )
+                    : _buildSavedPlaces(),
+          ),
+
+          // اختيار المركبة وزر الطلب
+          if (mapState.dropoffLocation != null) ...[
+            _buildVehicleSelection(),
+            _buildRequestButton(mapState),
+          ],
+        ],
+      ),
     );
   }
 
+  // ── نقاط الانطلاق والوصول ──
   Widget _buildLocationPoints(MapLocationState mapState) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12)),
-      child: Column(children: [
-        Row(children: [
-          const Icon(Icons.radio_button_checked, color: Color(0xFF00C853), size: 20),
-          const SizedBox(width: 12),
-          Expanded(child: Text(mapState.pickupAddress ?? 'موقعك الحالي', style: const TextStyle(fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis)),
-        ]),
-        if (mapState.dropoffAddress != null) ...[
-          const SizedBox(height: 8),
-          Row(children: [
-            const Icon(Icons.location_on, color: Color(0xFFFF1744), size: 20),
-            const SizedBox(width: 12),
-            Expanded(child: Text(mapState.dropoffAddress!, style: const TextStyle(fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            GestureDetector(onTap: () => ref.read(mapLocationProvider.notifier).clearDropoff(), child: const Icon(Icons.close, size: 18)),
-          ]),
+      padding: const EdgeInsets.all(MadarTheme.space16),
+      decoration: BoxDecoration(
+        color: MadarTheme.background,
+        borderRadius: BorderRadius.circular(MadarTheme.radiusLg),
+      ),
+      child: Column(
+        children: [
+          MadarLocationPoint(
+            isPickup: true,
+            address: mapState.pickupAddress ?? 'موقعك الحالي',
+          ),
+          if (mapState.dropoffAddress != null) ...[
+            const SizedBox(height: MadarTheme.space12),
+            Row(
+              children: [
+                Expanded(
+                  child: MadarLocationPoint(
+                    isPickup: false,
+                    address: mapState.dropoffAddress!,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () =>
+                      ref.read(mapLocationProvider.notifier).clearDropoff(),
+                  child: const Icon(Icons.close,
+                      size: 18, color: MadarTheme.textHint),
+                ),
+              ],
+            ),
+          ],
         ],
-      ]),
+      ),
     );
   }
 
+  // ── عنصر نتيجة البحث ──
   Widget _buildSearchResultItem(PlaceResult place) {
-    return ListTile(
-      leading: const Icon(Icons.location_on, color: Color(0xFFFF1744)),
-      title: Text(place.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(place.fullAddress, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+    return InkWell(
       onTap: () => _selectDestination(place),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: 4, vertical: MadarTheme.space12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: MadarTheme.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
+              ),
+              child: const Icon(Icons.location_on_outlined,
+                  color: MadarTheme.primary, size: 22),
+            ),
+            const SizedBox(width: MadarTheme.space12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    place.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      fontFamily: MadarTheme.fontFamily,
+                      color: MadarTheme.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    place.fullAddress,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: MadarTheme.textSecondary,
+                      fontSize: 12,
+                      fontFamily: MadarTheme.fontFamily,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
+  // ── الأماكن المحفوظة ──
   Widget _buildSavedPlaces() {
     return Center(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.search, size: 48, color: Colors.grey[300]),
-        const SizedBox(height: 16),
-        Text('ابحث عن وجهتك', style: TextStyle(color: Colors.grey[500])),
-      ]),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search, size: 56, color: MadarTheme.textHint.withOpacity(0.4)),
+          const SizedBox(height: MadarTheme.space16),
+          Text(
+            'ابحث عن وجهتك',
+            style: TextStyle(
+              color: MadarTheme.textSecondary,
+              fontFamily: MadarTheme.fontFamily,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
+  // ── اختيار نوع المركبة ──
   Widget _buildVehicleSelection() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('اختر نوع المركبة', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-        const SizedBox(height: 12),
-        Row(children: [
-          _vehicleOption(Icons.directions_car, 'سيدان', VehicleType.sedan),
-          const SizedBox(width: 8),
-          _vehicleOption(Icons.local_taxi, 'مريح', VehicleType.suv),
-          const SizedBox(width: 8),
-          _vehicleOption(Icons.airport_shuttle, 'فان', VehicleType.van),
-        ]),
-      ]),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'اختر نوع المركبة',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              fontFamily: MadarTheme.fontFamily,
+              color: MadarTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: MadarTheme.space12),
+          Row(
+            children: [
+              _vehicleOption(Icons.directions_car, 'سيدان', VehicleType.sedan,
+                  '${(15).toStringAsFixed(0)} ر.س'),
+              const SizedBox(width: 8),
+              _vehicleOption(
+                  Icons.local_taxi, 'مريح', VehicleType.suv, '${(22).toStringAsFixed(0)} ر.س'),
+              const SizedBox(width: 8),
+              _vehicleOption(Icons.airport_shuttle, 'فان', VehicleType.van,
+                  '${(30).toStringAsFixed(0)} ر.س'),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _vehicleOption(IconData icon, String name, VehicleType type) {
+  Widget _vehicleOption(
+      IconData icon, String name, VehicleType type, String price) {
     final selected = _selectedVehicleType == type;
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedVehicleType = type),
-        child: Container(
-          padding: const EdgeInsets.all(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFF00C853).withOpacity(0.1) : Colors.grey[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: selected ? const Color(0xFF00C853) : Colors.grey[200]!),
+            color: selected
+                ? MadarTheme.primary.withOpacity(0.08)
+                : MadarTheme.background,
+            borderRadius: BorderRadius.circular(MadarTheme.radiusLg),
+            border: Border.all(
+              color: selected ? MadarTheme.primary : MadarTheme.textHint.withOpacity(0.2),
+              width: selected ? 2 : 1,
+            ),
           ),
-          child: Column(children: [
-            Icon(icon, color: selected ? const Color(0xFF00C853) : Colors.grey[600], size: 24),
-            const SizedBox(height: 4),
-            Text(name, style: TextStyle(fontSize: 11, fontWeight: selected ? FontWeight.w700 : FontWeight.normal)),
-          ]),
+          child: Column(
+            children: [
+              Icon(icon,
+                  color: selected ? MadarTheme.primary : MadarTheme.textSecondary,
+                  size: 26),
+              const SizedBox(height: 6),
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                  fontFamily: MadarTheme.fontFamily,
+                  color: selected ? MadarTheme.primary : MadarTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                price,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: MadarTheme.fontFamily,
+                  color: selected ? MadarTheme.primary : MadarTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  // ── زر طلب الرحلة ──
   Widget _buildRequestButton(MapLocationState mapState) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: mapState.dropoffLocation != null ? () {
-            ref.read(tripProvider.notifier).createTrip(CreateTripRequest(
-              pickupLatitude: mapState.pickupLocation!.latitude,
-              pickupLongitude: mapState.pickupLocation!.longitude,
-              pickupAddress: mapState.pickupAddress ?? '',
-              dropoffLatitude: mapState.dropoffLocation!.latitude,
-              dropoffLongitude: mapState.dropoffLocation!.longitude,
-              dropoffAddress: mapState.dropoffAddress ?? '',
-              vehicleType: _selectedVehicleType.name,
-            ));
-            Navigator.pop(context);
-          } : null,
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C853), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-          child: const Text('طلب رحلة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      child: MadarGradientButton(
+        label: 'طلب رحلة',
+        onPressed: mapState.dropoffLocation != null
+            ? () {
+                ref.read(tripProvider.notifier).createTrip(CreateTripRequest(
+                      pickupLatitude: mapState.pickupLocation!.latitude,
+                      pickupLongitude: mapState.pickupLocation!.longitude,
+                      pickupAddress: mapState.pickupAddress ?? '',
+                      dropoffLatitude: mapState.dropoffLocation!.latitude,
+                      dropoffLongitude: mapState.dropoffLocation!.longitude,
+                      dropoffAddress: mapState.dropoffAddress ?? '',
+                      vehicleType: _selectedVehicleType.name,
+                    ));
+                Navigator.pop(context);
+              }
+            : null,
+        gradientColors: const [MadarTheme.primary, MadarTheme.primaryDark],
       ),
     );
   }
 }
+

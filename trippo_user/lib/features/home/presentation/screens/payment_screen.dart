@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trippo_shared/trippo_shared.dart';
-import '../../../../core/constants/app_theme.dart';
 import '../../../../core/network/nestjs_api_client.dart';
 
-/// NestJS API Client Provider for payment operations
+/// مزود عميل API للدفع
 final paymentApiProvider = Provider<NestjsApiClient>((ref) => NestjsApiClient());
 
-/// Payment Screen - Professional payment screen after trip completion
-///
-/// Shows trip summary, fare breakdown, and payment method selection.
-/// Calls NestJS: POST /trips/:id/pay
+/// شاشة الدفع - مدار
 class PaymentScreen extends ConsumerStatefulWidget {
   final String tripId;
 
@@ -90,10 +86,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         setState(() => _isPaying = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Payment failed: ${e.toString()}'),
-            backgroundColor: AppTheme.error,
+            content: Text('فشل الدفع: ${e.toString()}'),
+            backgroundColor: MadarTheme.error,
             action: SnackBarAction(
-              label: 'Retry',
+              label: 'إعادة المحاولة',
               textColor: Colors.white,
               onPressed: _processPayment,
             ),
@@ -106,26 +102,26 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payment'),
-        automaticallyImplyLeading: !_paymentSuccess,
+      appBar: MadarAppBar(
+        title: 'الدفع',
+        showBack: !_paymentSuccess,
       ),
       body: _paymentSuccess
           ? _buildSuccessView()
           : _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(
+                  child: CircularProgressIndicator(color: MadarTheme.primary))
               : _error != null
                   ? _buildErrorView()
                   : _buildPaymentContent(),
     );
   }
 
-  // ==================== Success View ====================
-
+  // ── عرض النجاح ──
   Widget _buildSuccessView() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacing32),
+        padding: const EdgeInsets.all(MadarTheme.space32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -135,44 +131,54 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: AppTheme.success.withOpacity(0.1),
+                  color: MadarTheme.success.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.check_circle,
-                  color: AppTheme.success,
+                  color: MadarTheme.success,
                   size: 64,
                 ),
               ),
             ),
-            const SizedBox(height: AppTheme.spacing24),
-            const Text(
-              'Payment Successful!',
-              style: AppTheme.heading2,
-            ),
-            const SizedBox(height: AppTheme.spacing8),
+            const SizedBox(height: MadarTheme.space24),
             Text(
-              'Your trip has been paid successfully',
-              style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
+              'تم الدفع بنجاح!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                fontFamily: MadarTheme.fontFamily,
+                color: MadarTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: MadarTheme.space8),
+            Text(
+              'تم سداد أجرة الرحلة بنجاح',
+              style: TextStyle(
+                color: MadarTheme.textSecondary,
+                fontFamily: MadarTheme.fontFamily,
+                fontSize: 14,
+              ),
               textAlign: TextAlign.center,
             ),
             if (_trip?.fareBreakdown != null) ...[
-              const SizedBox(height: AppTheme.spacing16),
-              Text(
-                '\$${_trip!.fareBreakdown!.totalFare.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.success,
-                ),
+              const SizedBox(height: MadarTheme.space16),
+              MadarPriceTag(
+                amount: _trip!.fareBreakdown!.totalFare,
+                fontSize: 32,
+                color: MadarTheme.success,
               ),
             ],
-            const SizedBox(height: AppTheme.spacing32),
+            const SizedBox(height: MadarTheme.space32),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: MadarGradientButton(
+                label: 'تم',
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Done'),
+                gradientColors: const [
+                  MadarTheme.primary,
+                  MadarTheme.primaryDark,
+                ],
               ),
             ),
           ],
@@ -181,32 +187,39 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     );
   }
 
-  // ==================== Error View ====================
-
+  // ── عرض الخطأ ──
   Widget _buildErrorView() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacing32),
+        padding: const EdgeInsets.all(MadarTheme.space32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: AppTheme.error),
-            const SizedBox(height: AppTheme.spacing16),
+            const Icon(Icons.error_outline, size: 64, color: MadarTheme.error),
+            const SizedBox(height: MadarTheme.space16),
             Text(
-              'Failed to load trip details',
-              style: AppTheme.heading3,
+              'فشل تحميل تفاصيل الرحلة',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                fontFamily: MadarTheme.fontFamily,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacing8),
+            const SizedBox(height: MadarTheme.space8),
             Text(
-              _error ?? 'Unknown error',
-              style: AppTheme.bodySmall,
+              _error ?? 'خطأ غير معروف',
+              style: TextStyle(
+                fontSize: 12,
+                fontFamily: MadarTheme.fontFamily,
+                color: MadarTheme.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppTheme.spacing24),
-            ElevatedButton.icon(
+            const SizedBox(height: MadarTheme.space24),
+            MadarButton(
+              label: 'إعادة المحاولة',
               onPressed: _loadTripDetails,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              icon: Icons.refresh,
             ),
           ],
         ),
@@ -214,152 +227,137 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     );
   }
 
-  // ==================== Payment Content ====================
-
+  // ── محتوى الدفع ──
   Widget _buildPaymentContent() {
     final fare = _trip?.fareBreakdown;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacing16),
+      padding: const EdgeInsets.all(MadarTheme.space16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Trip Summary Card
           _buildTripSummaryCard(),
-          const SizedBox(height: AppTheme.spacing16),
-
-          // Fare Breakdown Card
+          const SizedBox(height: MadarTheme.space16),
           if (fare != null) ...[
             _buildFareBreakdownCard(fare),
-            const SizedBox(height: AppTheme.spacing16),
+            const SizedBox(height: MadarTheme.space16),
           ],
-
-          // Payment Method Selection
           _buildPaymentMethodSection(),
-          const SizedBox(height: AppTheme.spacing24),
-
-          // Pay Now Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isPaying ? null : _processPayment,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: _isPaying
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      'Pay \$${fare?.totalFare.toStringAsFixed(2) ?? '0.00'}',
-                      style: AppTheme.button,
-                    ),
-            ),
+          const SizedBox(height: MadarTheme.space24),
+          MadarGradientButton(
+            label:
+                'ادفع الآن ${fare != null ? "${fare.totalFare.toStringAsFixed(2)} ر.س" : ""}',
+            onPressed: _isPaying ? null : _processPayment,
+            isLoading: _isPaying,
+            gradientColors: const [MadarTheme.primary, MadarTheme.primaryDark],
           ),
         ],
       ),
     );
   }
 
-  // ==================== Trip Summary ====================
-
+  // ── ملخص الرحلة ──
   Widget _buildTripSummaryCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Trip Summary', style: AppTheme.heading3),
-            const SizedBox(height: AppTheme.spacing16),
-            // Pickup
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.mapPickup.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.radio_button_checked,
-                      color: AppTheme.mapPickup, size: 14),
-                ),
-                const SizedBox(width: AppTheme.spacing12),
-                Expanded(
-                  child: Text(
-                    _trip?.pickupLocation.address ?? 'Pickup Location',
-                    style: AppTheme.bodyMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+    return Container(
+      padding: const EdgeInsets.all(MadarTheme.space16),
+      decoration: MadarTheme.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ملخص الرحلة',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              fontFamily: MadarTheme.fontFamily,
+              color: MadarTheme.textPrimary,
             ),
-            Padding(
-              padding: const EdgeInsets.only(left: 11),
-              child: Container(
-                width: 1,
-                height: 16,
-                color: AppTheme.divider,
+          ),
+          const SizedBox(height: MadarTheme.space16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: MadarTheme.mapPickup.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.radio_button_checked,
+                    color: MadarTheme.mapPickup, size: 14),
               ),
-            ),
-            // Dropoff
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.mapDropoff.withOpacity(0.1),
-                    shape: BoxShape.circle,
+              const SizedBox(width: MadarTheme.space12),
+              Expanded(
+                child: Text(
+                  _trip?.pickupLocation.address ?? 'نقطة الانطلاق',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: MadarTheme.fontFamily,
                   ),
-                  child: const Icon(Icons.location_on,
-                      color: AppTheme.mapDropoff, size: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: AppTheme.spacing12),
-                Expanded(
-                  child: Text(
-                    _trip?.dropoffLocation.address ?? 'Dropoff Location',
-                    style: AppTheme.bodyMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 11),
+            child: Container(
+              width: 1,
+              height: 16,
+              color: MadarTheme.textHint.withOpacity(0.3),
+            ),
+          ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: MadarTheme.mapDropoff.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.location_on,
+                    color: MadarTheme.mapDropoff, size: 14),
+              ),
+              const SizedBox(width: MadarTheme.space12),
+              Expanded(
+                child: Text(
+                  _trip?.dropoffLocation.address ?? 'نقطة الوصول',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: MadarTheme.fontFamily,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-            const Divider(height: AppTheme.spacing24),
-            // Stats row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildTripStat(
-                  icon: Icons.straighten,
-                  label: 'Distance',
-                  value:
-                      '${(_trip?.estimatedDistanceKm ?? _trip?.fareBreakdown?.distanceKm ?? 0).toStringAsFixed(1)} km',
-                ),
-                _buildTripStat(
-                  icon: Icons.access_time,
-                  label: 'Duration',
-                  value:
-                      '${_trip?.estimatedDurationMinutes ?? _trip?.fareBreakdown?.durationMinutes ?? 0} min',
-                ),
-                _buildTripStat(
-                  icon: Icons.local_taxi,
-                  label: 'Vehicle',
-                  value: _trip?.vehicleType.isNotEmpty == true
-                      ? _trip!.vehicleType.capitalize()
-                      : 'Standard',
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const Divider(height: MadarTheme.space24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildTripStat(
+                icon: Icons.straighten,
+                label: 'المسافة',
+                value:
+                    '${(_trip?.estimatedDistanceKm ?? _trip?.fareBreakdown?.distanceKm ?? 0).toStringAsFixed(1)} كم',
+              ),
+              _buildTripStat(
+                icon: Icons.access_time,
+                label: 'المدة',
+                value:
+                    '${_trip?.estimatedDurationMinutes ?? _trip?.fareBreakdown?.durationMinutes ?? 0} د',
+              ),
+              _buildTripStat(
+                icon: Icons.local_taxi,
+                label: 'المركبة',
+                value: _trip?.vehicleType.isNotEmpty == true
+                    ? _trip!.vehicleType
+                    : 'قياسي',
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -371,112 +369,120 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   }) {
     return Column(
       children: [
-        Icon(icon, color: AppTheme.primary, size: 20),
+        Icon(icon, color: MadarTheme.primary, size: 20),
         const SizedBox(height: 4),
-        Text(label, style: AppTheme.bodySmall),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontFamily: MadarTheme.fontFamily,
+            color: MadarTheme.textSecondary,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(value,
-            style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            fontFamily: MadarTheme.fontFamily,
+          ),
+        ),
       ],
     );
   }
 
-  // ==================== Fare Breakdown ====================
-
+  // ── تفاصيل الأجرة ──
   Widget _buildFareBreakdownCard(FareBreakdown fare) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Fare Breakdown', style: AppTheme.heading3),
-            const SizedBox(height: AppTheme.spacing16),
-            // Base fare items
-            _buildFareRow('Base Fare', fare.baseFare),
-            _buildFareRow('Distance Fare', fare.distanceFare),
-            _buildFareRow('Time Fare', fare.timeFare),
-
-            // Conditional charges
-            if (fare.surgeCharge > 0) ...[
-              const Divider(height: AppTheme.spacing16),
-              _buildFareRow(
-                'Surge Charge (${fare.surgeMultiplier}x)',
-                fare.surgeCharge,
-                highlight: true,
-                icon: Icons.trending_up,
-              ),
-            ],
-            if (fare.nightCharge > 0) ...[
-              _buildFareRow(
-                'Night Charge (${fare.nightMultiplier}x)',
-                fare.nightCharge,
-                highlight: true,
-                icon: Icons.nightlight,
-              ),
-            ],
-            if (fare.areaCharge > 0) ...[
-              _buildFareRow(
-                'Area Charge',
-                fare.areaCharge,
-                highlight: true,
-                icon: Icons.map,
-              ),
-            ],
-            if (fare.waitingCharge > 0) ...[
-              _buildFareRow(
-                'Waiting Fee (${fare.waitingMinutes} min)',
-                fare.waitingCharge,
-                icon: Icons.hourglass_bottom,
-              ),
-            ],
-
-            // Discounts
-            if (fare.promoDiscount > 0) ...[
-              const Divider(height: AppTheme.spacing16),
-              _buildFareRow(
-                'Promo Discount',
-                -fare.promoDiscount,
-                isDiscount: true,
-                icon: Icons.discount,
-              ),
-            ],
-
-            // Cancellation fee
-            if (fare.cancellationFee > 0) ...[
-              _buildFareRow(
-                'Cancellation Fee',
-                fare.cancellationFee,
-                highlight: true,
-                icon: Icons.cancel,
-              ),
-            ],
-
-            // Total
-            const Divider(height: AppTheme.spacing24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total Fare',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                Text(
-                  '\$${fare.totalFare.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.primary,
-                  ),
-                ),
-              ],
+    return Container(
+      padding: const EdgeInsets.all(MadarTheme.space16),
+      decoration: MadarTheme.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'تفاصيل الأجرة',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              fontFamily: MadarTheme.fontFamily,
+              color: MadarTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: MadarTheme.space16),
+          _buildFareRow('الأجرة الأساسية', fare.baseFare),
+          _buildFareRow('أجرة المسافة', fare.distanceFare),
+          _buildFareRow('أجرة الوقت', fare.timeFare),
+          if (fare.surgeCharge > 0) ...[
+            const Divider(height: MadarTheme.space16),
+            _buildFareRow(
+              'رسوم الازدحام (${fare.surgeMultiplier}x)',
+              fare.surgeCharge,
+              highlight: true,
+              icon: Icons.trending_up,
             ),
           ],
-        ),
+          if (fare.nightCharge > 0) ...[
+            _buildFareRow(
+              'رسوم الليل (${fare.nightMultiplier}x)',
+              fare.nightCharge,
+              highlight: true,
+              icon: Icons.nightlight,
+            ),
+          ],
+          if (fare.areaCharge > 0) ...[
+            _buildFareRow(
+              'رسوم المنطقة',
+              fare.areaCharge,
+              highlight: true,
+              icon: Icons.map,
+            ),
+          ],
+          if (fare.waitingCharge > 0) ...[
+            _buildFareRow(
+              'رسوم الانتظار (${fare.waitingMinutes} د)',
+              fare.waitingCharge,
+              icon: Icons.hourglass_bottom,
+            ),
+          ],
+          if (fare.promoDiscount > 0) ...[
+            const Divider(height: MadarTheme.space16),
+            _buildFareRow(
+              'خصم العرض',
+              -fare.promoDiscount,
+              isDiscount: true,
+              icon: Icons.discount,
+            ),
+          ],
+          if (fare.cancellationFee > 0) ...[
+            _buildFareRow(
+              'رسوم الإلغاء',
+              fare.cancellationFee,
+              highlight: true,
+              icon: Icons.cancel,
+            ),
+          ],
+          const Divider(height: MadarTheme.space24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'الإجمالي',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: MadarTheme.fontFamily,
+                  color: MadarTheme.textPrimary,
+                ),
+              ),
+              MadarPriceTag(
+                amount: fare.totalFare,
+                fontSize: 22,
+                color: MadarTheme.primary,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -489,13 +495,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     IconData? icon,
   }) {
     final color = isDiscount
-        ? AppTheme.success
+        ? MadarTheme.success
         : highlight
-            ? AppTheme.accent
-            : AppTheme.textSecondary;
+            ? MadarTheme.accent
+            : MadarTheme.textSecondary;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacing8),
+      padding: const EdgeInsets.only(bottom: MadarTheme.space8),
       child: Row(
         children: [
           if (icon != null) ...[
@@ -505,13 +511,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           Expanded(
             child: Text(
               label,
-              style: AppTheme.bodyMedium.copyWith(color: color),
+              style: TextStyle(
+                fontSize: 14,
+                fontFamily: MadarTheme.fontFamily,
+                color: color,
+              ),
             ),
           ),
           Text(
-            '${isDiscount ? "-" : ""}\$${amount.abs().toStringAsFixed(2)}',
-            style: AppTheme.bodyMedium.copyWith(
+            '${isDiscount ? "-" : ""}${amount.abs().toStringAsFixed(2)} ر.س',
+            style: TextStyle(
+              fontSize: 14,
               fontWeight: FontWeight.w500,
+              fontFamily: MadarTheme.fontFamily,
               color: color,
             ),
           ),
@@ -520,22 +532,28 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     );
   }
 
-  // ==================== Payment Method ====================
-
+  // ── طريقة الدفع ──
   Widget _buildPaymentMethodSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Payment Method', style: AppTheme.heading3),
-            const SizedBox(height: AppTheme.spacing12),
-            ...PaymentMethod.values.map(
-              (method) => _buildPaymentMethodOption(method),
+    return Container(
+      padding: const EdgeInsets.all(MadarTheme.space16),
+      decoration: MadarTheme.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'طريقة الدفع',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              fontFamily: MadarTheme.fontFamily,
+              color: MadarTheme.textPrimary,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: MadarTheme.space12),
+          ...PaymentMethod.values.map(
+            (method) => _buildPaymentMethodOption(method),
+          ),
+        ],
       ),
     );
   }
@@ -544,17 +562,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     final isSelected = _selectedMethod == method;
     return InkWell(
       onTap: () => setState(() => _selectedMethod = method),
-      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppTheme.spacing8),
-        padding: const EdgeInsets.all(AppTheme.spacing12),
+      borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: MadarTheme.space8),
+        padding: const EdgeInsets.all(MadarTheme.space12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primary.withOpacity(0.05)
+              ? MadarTheme.primary.withOpacity(0.05)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
           border: Border.all(
-            color: isSelected ? AppTheme.primary : AppTheme.divider,
+            color: isSelected ? MadarTheme.primary : MadarTheme.textHint.withOpacity(0.2),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -564,7 +583,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: _getMethodColor(method).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                borderRadius: BorderRadius.circular(MadarTheme.radiusSm),
               ),
               child: Icon(
                 _getMethodIcon(method),
@@ -572,18 +591,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 size: 20,
               ),
             ),
-            const SizedBox(width: AppTheme.spacing12),
+            const SizedBox(width: MadarTheme.space12),
             Expanded(
               child: Text(
                 _getMethodLabel(method),
-                style: AppTheme.bodyMedium.copyWith(
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w400,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontFamily: MadarTheme.fontFamily,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle, color: AppTheme.primary),
+              const Icon(Icons.check_circle, color: MadarTheme.primary),
           ],
         ),
       ),
@@ -597,29 +617,30 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       };
 
   Color _getMethodColor(PaymentMethod method) => switch (method) {
-        PaymentMethod.cash => AppTheme.success,
-        PaymentMethod.card => AppTheme.info,
-        PaymentMethod.wallet => AppTheme.accent,
+        PaymentMethod.cash => MadarTheme.success,
+        PaymentMethod.card => MadarTheme.primary,
+        PaymentMethod.wallet => MadarTheme.accent,
       };
 
   String _getMethodLabel(PaymentMethod method) => switch (method) {
-        PaymentMethod.cash => 'Cash',
-        PaymentMethod.card => 'Credit / Debit Card',
+        PaymentMethod.cash => 'نقدي',
+        PaymentMethod.card => 'بطاقة ائتمان / خصم',
         PaymentMethod.wallet => 'محفظة مدار',
       };
 }
 
-/// Payment method enum for the payment screen
+/// طريقة الدفع
 enum PaymentMethod {
   cash,
   card,
   wallet,
 }
 
-/// String capitalization extension
+/// امتداد تحويل الحرف الأول لكبير
 extension StringCapitalization on String {
   String capitalize() {
     if (isEmpty) return this;
     return '${this[0].toUpperCase()}${substring(1)}';
   }
 }
+

@@ -1,6 +1,6 @@
 name: trippo_shared
-description: Shared code between Trippo User and Driver apps
-version: 1.0.0
+description: Shared code between Madar ride-hailing apps
+version: 2.0.0
 publish_to: 'none'
 
 environment:
@@ -13,20 +13,14 @@ dependencies:
   json_annotation: ^4.8.1
   riverpod: ^2.4.9
   flutter_riverpod: ^2.4.9
-  # Open-source map (replaces google_maps_flutter)
   flutter_map: ^6.1.0
   latlong2: ^0.9.1
-  # HTTP client
   dio: ^5.4.0
-  # Location
   geolocator: ^10.1.0
-  # Real-time
   socket_io_client: ^2.0.3+1
-  # Utils
   uuid: ^4.2.2
   intl: any
   equatable: ^2.0.5
-  # GeoJSON parsing for OSRM routes
   geojson_vi: ^2.0.3
 
 dev_dependencies:
@@ -39,3 +33,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+

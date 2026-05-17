@@ -217,7 +217,7 @@ class _TripHistoryScreenState extends ConsumerState<TripHistoryScreen>
                       Container(
                         width: 2,
                         height: 24,
-                        color: AppTheme.divider,
+                        color: AppTheme.dividerColor,
                       ),
                       Container(
                         width: 10,

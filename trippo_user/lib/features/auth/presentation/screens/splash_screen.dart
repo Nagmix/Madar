@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trippo_shared/trippo_shared.dart';
 import '../notifiers/auth_notifier.dart';
 
 /// شاشة البداية - مدار
@@ -14,9 +15,11 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _logoController;
+  late AnimationController _pulseController;
   late AnimationController _textController;
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
+  late Animation<double> _pulseScale;
   late Animation<Offset> _textSlide;
   late Animation<double> _textOpacity;
 
@@ -33,6 +36,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       duration: const Duration(milliseconds: 1200),
     );
 
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+
     _textController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -46,7 +54,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
     );
 
-    _textSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+    _pulseScale = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _textSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+        .animate(
       CurvedAnimation(parent: _textController, curve: Curves.easeOutCubic),
     );
 
@@ -55,6 +68,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
 
     _logoController.forward().then((_) {
+      _pulseController.repeat(reverse: true);
       _textController.forward();
     });
   }
@@ -68,6 +82,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void dispose() {
     _logoController.dispose();
+    _pulseController.dispose();
     _textController.dispose();
     super.dispose();
   }
@@ -86,12 +101,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topRight,
-            end: Alignment.bottomLeft,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF00C853),
-              Color(0xFF009624),
-              Color(0xFF1B5E20),
+              MadarTheme.primary,
+              MadarTheme.primaryDark,
+              MadarTheme.secondary,
             ],
           ),
         ),
@@ -100,39 +115,42 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // شعار مدار مع حركة
+                // شعار مدار مع حركة نابضة
                 FadeTransition(
                   opacity: _logoOpacity,
                   child: ScaleTransition(
                     scale: _logoScale,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(32),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                    child: ScaleTransition(
+                      scale: _pulseScale,
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(36),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 30,
+                              offset: const Offset(0, 12),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: MadarLogo(
+                            size: 100,
+                            showText: true,
+                            color: MadarTheme.primary,
                           ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.local_taxi,
-                          size: 60,
-                          color: Color(0xFF00C853),
                         ),
                       ),
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 40),
 
-                // اسم التطبيق مع حركة
+                // الاسم مع حركة ظهور
                 SlideTransition(
                   position: _textSlide,
                   child: FadeTransition(
@@ -143,18 +161,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           'مدار',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 42,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 44,
+                            fontWeight: FontWeight.w900,
                             letterSpacing: 2,
+                            fontFamily: MadarTheme.fontFamily,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'رحلتك، طريقتك',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
-                            fontSize: 18,
-                            fontWeight: FontWeight.w400,
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: MadarTheme.space24,
+                            vertical: MadarTheme.space8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius:
+                                BorderRadius.circular(MadarTheme.radiusFull),
+                          ),
+                          child: const Text(
+                            'نقلك الذكي',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                              fontFamily: MadarTheme.fontFamily,
+                              letterSpacing: 1,
+                            ),
                           ),
                         ),
                       ],
@@ -162,16 +194,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   ),
                 ),
 
-                const SizedBox(height: 60),
+                const SizedBox(height: 80),
 
                 // مؤشر التحميل
                 SizedBox(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withOpacity(0.8),
+                      Colors.white.withOpacity(0.7),
                     ),
                   ),
                 ),
@@ -183,3 +215,4 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 }
+

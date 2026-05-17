@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trippo_shared/trippo_shared.dart';
 import '../notifiers/auth_notifier.dart';
-import '../../../../core/constants/app_theme.dart';
 
 /// شاشة تسجيل الدخول - مدار
 class LoginScreen extends ConsumerStatefulWidget {
@@ -38,145 +38,163 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
 
+    ref.listen<AuthState>(authProvider, (prev, next) {
+      if (next.status == AuthStatus.authenticated) {
+        context.go('/home');
+      }
+    });
+
     return Scaffold(
+      backgroundColor: MadarTheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: MadarTheme.space24),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 20),
+                const SizedBox(height: MadarTheme.space40),
 
                 // شعار مدار
-                Center(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Icon(
-                      Icons.local_taxi,
-                      size: 40,
-                      color: AppTheme.primary,
-                    ),
+                const Center(
+                  child: MadarLogo(
+                    size: 80,
+                    showText: true,
+                    color: MadarTheme.primary,
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: MadarTheme.space40),
 
                 // عنوان الترحيب
-                const Text(
+                Text(
                   'مرحباً بعودتك!',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                        color: MadarTheme.textPrimary,
+                      ),
                   textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: MadarTheme.space8),
 
                 Text(
                   'سجّل دخولك للمتابعة',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[500],
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: MadarTheme.textSecondary,
+                      ),
                   textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: MadarTheme.space40),
 
                 // حقل البريد الإلكتروني
-                TextFormField(
+                MadarTextField(
                   controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
+                  label: 'البريد الإلكتروني',
+                  hint: 'أدخل بريدك الإلكتروني',
+                  prefixIcon: Icons.email_outlined,
                   textDirection: TextDirection.ltr,
-                  decoration: const InputDecoration(
-                    labelText: 'البريد الإلكتروني',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
+                  keyboardType: TextInputType.emailAddress,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'يرجى إدخال البريد الإلكتروني';
+                    if (value == null || value.isEmpty) {
+                      return 'يرجى إدخال البريد الإلكتروني';
+                    }
                     if (!value.contains('@')) return 'البريد الإلكتروني غير صالح';
                     return null;
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: MadarTheme.space16),
 
                 // حقل كلمة المرور
-                TextFormField(
+                MadarTextField(
                   controller: _passwordController,
+                  label: 'كلمة المرور',
+                  hint: 'أدخل كلمة المرور',
+                  prefixIcon: Icons.lock_outline,
                   obscureText: _obscurePassword,
                   textDirection: TextDirection.ltr,
-                  decoration: InputDecoration(
-                    labelText: 'كلمة المرور',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: MadarTheme.textSecondary,
+                      size: 22,
                     ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'يرجى إدخال كلمة المرور';
+                    if (value == null || value.isEmpty) {
+                      return 'يرجى إدخال كلمة المرور';
+                    }
                     if (value.length < 6) return 'كلمة المرور قصيرة جداً';
                     return null;
                   },
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: MadarTheme.space8),
 
                 // نسيت كلمة المرور
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton(
                     onPressed: () {},
-                    child: const Text(
+                    child: Text(
                       'نسيت كلمة المرور؟',
-                      style: TextStyle(color: AppTheme.primary),
+                      style: TextStyle(
+                        color: MadarTheme.primary,
+                        fontFamily: MadarTheme.fontFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: MadarTheme.space16),
 
                 // زر تسجيل الدخول
-                ElevatedButton(
-                  onPressed: authState.status == AuthStatus.loading ? null : _login,
-                  child: authState.status == AuthStatus.loading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text('تسجيل الدخول'),
+                MadarGradientButton(
+                  label: 'تسجيل الدخول',
+                  onPressed: authState.status == AuthStatus.loading
+                      ? null
+                      : _login,
+                  isLoading: authState.status == AuthStatus.loading,
+                  gradientColors: const [
+                    MadarTheme.primary,
+                    MadarTheme.primaryDark,
+                  ],
                 ),
 
+                // رسالة الخطأ
                 if (authState.error != null) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: MadarTheme.space16),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(MadarTheme.space12),
                     decoration: BoxDecoration(
-                      color: AppTheme.error.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                      color: MadarTheme.error.withOpacity(0.08),
+                      borderRadius:
+                          BorderRadius.circular(MadarTheme.radiusMd),
+                      border: Border.all(
+                        color: MadarTheme.error.withOpacity(0.2),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, color: AppTheme.error, size: 20),
-                        const SizedBox(width: 8),
+                        const Icon(Icons.error_outline,
+                            color: MadarTheme.error, size: 20),
+                        const SizedBox(width: MadarTheme.space8),
                         Expanded(
                           child: Text(
                             authState.error!,
-                            style: const TextStyle(color: AppTheme.error, fontSize: 13),
+                            style: const TextStyle(
+                              color: MadarTheme.error,
+                              fontSize: 13,
+                              fontFamily: MadarTheme.fontFamily,
+                            ),
                           ),
                         ),
                       ],
@@ -184,7 +202,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ],
 
-                const SizedBox(height: 32),
+                const SizedBox(height: MadarTheme.space40),
 
                 // إنشاء حساب جديد
                 Row(
@@ -192,15 +210,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   children: [
                     Text(
                       'ليس لديك حساب؟',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(
+                        color: MadarTheme.textSecondary,
+                        fontFamily: MadarTheme.fontFamily,
+                        fontSize: 14,
+                      ),
                     ),
                     TextButton(
                       onPressed: () => context.go('/register'),
-                      child: const Text(
+                      child: Text(
                         'إنشاء حساب',
                         style: TextStyle(
-                          color: AppTheme.primary,
+                          color: MadarTheme.primary,
                           fontWeight: FontWeight.w700,
+                          fontFamily: MadarTheme.fontFamily,
+                          fontSize: 14,
                         ),
                       ),
                     ),
@@ -214,3 +238,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
+

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 
-/// Driver Earnings Screen - Daily/weekly/monthly earnings breakdown
+/// شاشة الأرباح - مدار
 class DriverEarningsScreen extends StatefulWidget {
   const DriverEarningsScreen({super.key});
 
@@ -29,18 +29,49 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: MadarTheme.background,
       appBar: AppBar(
-        title: const Text('Earnings'),
+        backgroundColor: MadarTheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'الأرباح',
+          style: TextStyle(
+            fontFamily: MadarTheme.fontFamily,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: MadarTheme.primary,
+          unselectedLabelColor: MadarTheme.textSecondary,
+          indicatorColor: MadarTheme.primary,
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelStyle: const TextStyle(
+            fontFamily: MadarTheme.fontFamily,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: MadarTheme.fontFamily,
+            fontWeight: FontWeight.w400,
+            fontSize: 14,
+          ),
           tabs: const [
-            Tab(text: 'Today'),
-            Tab(text: 'This Week'),
-            Tab(text: 'This Month'),
+            Tab(text: 'اليوم'),
+            Tab(text: 'هذا الأسبوع'),
+            Tab(text: 'هذا الشهر'),
           ],
           onTap: (index) {
             setState(() {
-              _selectedPeriod = switch (index) { 0 => 'today', 1 => 'week', 2 => 'month', _ => 'today' };
+              _selectedPeriod = switch (index) {
+                0 => 'today',
+                1 => 'week',
+                2 => 'month',
+                _ => 'today'
+              };
             });
           },
         ),
@@ -57,91 +88,160 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen>
   }
 
   Widget _buildEarningsContent(String period) {
-    // These would be fetched from NestJS Driver Module
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(MadarTheme.space16),
       child: Column(
         children: [
-          // Total earnings card
+          // Main earnings card with dark gradient
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(MadarTheme.space24),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                colors: [MadarTheme.darkSurface, Color(0xFF16213E)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(MadarTheme.radiusXl),
+              boxShadow: [
+                MadarTheme.shadow(
+                  color: MadarTheme.darkSurface.withOpacity(0.4),
+                  blur: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Column(
               children: [
                 Text(
-                  period == 'today' ? "Today's Earnings" : period == 'week' ? 'Weekly Earnings' : 'Monthly Earnings',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  period == 'today'
+                      ? 'أرباح اليوم'
+                      : period == 'week'
+                          ? 'أرباح الأسبوع'
+                          : 'أرباح الشهر',
+                  style: const TextStyle(
+                    fontFamily: MadarTheme.fontFamily,
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  '\$85.50',
-                  style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
+                const MadarPriceTag(
+                  amount: 85.50,
+                  fontSize: 40,
+                  currency: 'ر.س',
+                  color: Colors.white,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: MadarTheme.space20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildStatColumn('Trips', '8', Icons.route),
-                    _buildStatColumn('Hours', '5.2', Icons.schedule),
-                    _buildStatColumn('Avg/Trip', '\$10.69', Icons.trending_up),
+                    _buildStatColumn('الرحلات', '8', Icons.route, Colors.white54),
+                    _buildStatColumn('الساعات', '5.2', Icons.schedule, Colors.white54),
+                    _buildStatColumn('متوسط/رحلة', 'ر.س 10.69', Icons.trending_up, Colors.white54),
                   ],
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: MadarTheme.space24),
 
           // Earnings breakdown
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(16),
-            ),
+          MadarCard(
+            padding: const EdgeInsets.all(MadarTheme.space20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Breakdown', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 12),
-                _buildBreakdownRow('Trip Earnings', '\$106.88', isPositive: true),
-                _buildBreakdownRow('Commission (20%)', '-\$21.38', isPositive: false),
-                _buildBreakdownRow('Incentives', '+\$5.00', isPositive: true),
-                _buildBreakdownRow('Waiting Fees', '+\$2.50', isPositive: true),
-                const Divider(),
-                _buildBreakdownRow('Net Earnings', '\$85.50', isPositive: true, isBold: true),
+                const Text(
+                  'التفاصيل',
+                  style: TextStyle(
+                    fontFamily: MadarTheme.fontFamily,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: MadarTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: MadarTheme.space16),
+                _buildBreakdownRow(
+                  Icons.attach_money,
+                  'أجرة الرحلات',
+                  'ر.س 106.88',
+                  isPositive: true,
+                ),
+                _buildBreakdownRow(
+                  Icons.percent,
+                  'العمولة (20%)',
+                  '-ر.س 21.38',
+                  isPositive: false,
+                ),
+                _buildBreakdownRow(
+                  Icons.card_giftcard,
+                  'الحوافز',
+                  '+ر.س 5.00',
+                  isPositive: true,
+                ),
+                _buildBreakdownRow(
+                  Icons.access_time,
+                  'رسوم الانتظار',
+                  '+ر.س 2.50',
+                  isPositive: true,
+                ),
+                const Divider(height: MadarTheme.space24),
+                _buildBreakdownRow(
+                  Icons.account_balance_wallet,
+                  'صافي الأرباح',
+                  'ر.س 85.50',
+                  isPositive: true,
+                  isBold: true,
+                ),
               ],
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: MadarTheme.space20),
 
           // Commission info
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(MadarTheme.space16),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.withOpacity(0.2)),
+              color: MadarTheme.primary.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
+              border: Border.all(color: MadarTheme.primary.withOpacity(0.2)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.blue),
-                SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: MadarTheme.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(MadarTheme.radiusSm),
+                  ),
+                  child: const Icon(Icons.info_outline,
+                      color: MadarTheme.primary, size: 18),
+                ),
+                const SizedBox(width: MadarTheme.space12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Commission Rate: 20%', style: TextStyle(fontWeight: FontWeight.w600)),
-                      Text('Commission is deducted automatically from each trip fare', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const Text(
+                        'نسبة العمولة: 20%',
+                        style: TextStyle(
+                          fontFamily: MadarTheme.fontFamily,
+                          fontWeight: FontWeight.w600,
+                          color: MadarTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'تُخصم العمولة تلقائياً من أجرة كل رحلة',
+                        style: TextStyle(
+                          fontFamily: MadarTheme.fontFamily,
+                          fontSize: 12,
+                          color: MadarTheme.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -149,40 +249,61 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen>
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: MadarTheme.space20),
 
           // Incentive progress
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(MadarTheme.space16),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.withOpacity(0.2)),
+              color: MadarTheme.accent.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
+              border: Border.all(color: MadarTheme.accent.withOpacity(0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.card_giftcard, color: Colors.orange),
-                    SizedBox(width: 8),
-                    Text('Incentive Progress', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const Icon(Icons.card_giftcard, color: MadarTheme.accent),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'تقدم الحوافز',
+                      style: TextStyle(
+                        fontFamily: MadarTheme.fontFamily,
+                        fontWeight: FontWeight.w600,
+                        color: MadarTheme.textPrimary,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                const Text('Complete 10 trips today for a \$15 bonus'),
-                const SizedBox(height: 8),
+                const SizedBox(height: MadarTheme.space12),
+                const Text(
+                  'أكمل 10 رحلات اليوم للحصول على مكافأة ر.س 15',
+                  style: TextStyle(
+                    fontFamily: MadarTheme.fontFamily,
+                    color: MadarTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: MadarTheme.space8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: 0.8,
-                    backgroundColor: Colors.grey[200],
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
+                    backgroundColor: MadarTheme.textHint.withOpacity(0.2),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                        MadarTheme.accent),
                     minHeight: 8,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text('8/10 trips completed', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  '8/10 رحلات مكتملة',
+                  style: TextStyle(
+                    fontFamily: MadarTheme.fontFamily,
+                    fontSize: 12,
+                    color: MadarTheme.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -191,29 +312,69 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen>
     );
   }
 
-  Widget _buildStatColumn(String label, String value, IconData icon) {
+  Widget _buildStatColumn(String label, String value, IconData icon, Color iconColor) {
     return Column(
       children: [
-        Icon(icon, color: Colors.white54, size: 20),
+        Icon(icon, color: iconColor, size: 20),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontFamily: MadarTheme.fontFamily,
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: MadarTheme.fontFamily,
+            color: iconColor,
+            fontSize: 11,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildBreakdownRow(String label, String value, {required bool isPositive, bool isBold = false}) {
+  Widget _buildBreakdownRow(
+    IconData icon,
+    String label,
+    String value, {
+    required bool isPositive,
+    bool isBold = false,
+  }) {
+    final valueColor = isPositive ? MadarTheme.success : MadarTheme.error;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: MadarTheme.space8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.w600 : FontWeight.normal)),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: (isPositive ? MadarTheme.success : MadarTheme.error)
+                  .withOpacity(0.1),
+              borderRadius: BorderRadius.circular(MadarTheme.radiusSm),
+            ),
+            child: Icon(icon, size: 16, color: valueColor),
+          ),
+          const SizedBox(width: MadarTheme.space12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: MadarTheme.fontFamily,
+                fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
+                color: MadarTheme.textPrimary,
+              ),
+            ),
+          ),
           Text(
             value,
             style: TextStyle(
-              fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
-              color: isPositive ? Colors.green : Colors.red,
+              fontFamily: MadarTheme.fontFamily,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+              color: isBold ? MadarTheme.primary : valueColor,
             ),
           ),
         ],
@@ -221,3 +382,4 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen>
     );
   }
 }
+

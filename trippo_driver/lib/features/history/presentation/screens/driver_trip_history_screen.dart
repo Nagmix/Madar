@@ -322,7 +322,7 @@ class _DriverTripHistoryScreenState
                       Container(
                         width: 2,
                         height: 24,
-                        color: AppTheme.divider,
+                        color: AppTheme.dividerColor,
                       ),
                       Container(
                         width: 10,
