@@ -13,13 +13,21 @@ dependencies:
   json_annotation: ^4.8.1
   riverpod: ^2.4.9
   flutter_riverpod: ^2.4.9
-  google_maps_flutter: ^2.5.3
-  geolocator: ^10.1.0
+  # Open-source map (replaces google_maps_flutter)
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+  # HTTP client
   dio: ^5.4.0
+  # Location
+  geolocator: ^10.1.0
+  # Real-time
   socket_io_client: ^2.0.3+1
+  # Utils
   uuid: ^4.2.2
   intl: ^0.19.0
   equatable: ^2.0.5
+  # GeoJSON parsing for OSRM routes
+  geojson_vi: ^2.0.3
 
 dev_dependencies:
   flutter_test:

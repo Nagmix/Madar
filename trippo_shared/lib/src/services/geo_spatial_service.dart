@@ -28,7 +28,7 @@ class GeoSpatialService {
 
   /// Reverse geocode - GET /geo/reverse-geocode
   /// Converts coordinates to an address using NestJS Geo Module.
-  /// NestJS proxies to Google Maps Geocoding API or similar.
+  /// NestJS proxies to Nominatim or similar.
   Future<LocationModel> reverseGeocode(double lat, double lng) async {
     try {
       final response = await _apiService.get(
@@ -73,7 +73,7 @@ class GeoSpatialService {
   // ==================== Places ====================
 
   /// Search places - GET /geo/places
-  /// Proxied through NestJS to Google Places Autocomplete API.
+  /// Proxied through NestJS to Nominatim Search API.
   /// Returns a list of predicted places matching the query.
   Future<List<PredictedPlace>> searchPlaces(
     String query, {
@@ -172,7 +172,7 @@ class GeoSpatialService {
 
   /// Get directions - GET /geo/directions (proxied through NestJS)
   /// Returns route information between two points.
-  /// NestJS proxies to Google Directions API or OSRM.
+  /// NestJS proxies to OSRM.
   Future<RouteInfo> getDirections(
     double fromLat,
     double fromLng,
@@ -287,7 +287,7 @@ class GeoSpatialService {
 /// Predicted place result from place search
 /// Matches the NestJS Geo Module response format
 class PredictedPlace {
-  /// Google Places place_id or internal ID
+  /// OSM place_id or internal ID
   final String placeId;
 
   /// Main text (e.g., "Riyadh International Airport")

@@ -23,9 +23,6 @@ class AppConfig {
     Environment.production => 'https://api.madar.app',
   };
 
-  // Google Maps API Key
-  static const String googleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
-
   // Feature flags
   static const bool enableSurgePricing = true;
   static const bool enableNightPricing = true;

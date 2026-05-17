@@ -80,13 +80,6 @@ class ApiConstants {
   static const String zones = '/geo/zones';
   static const String searchPlaces = '/geo/places';
 
-  // Google Maps API (used until backend proxy is ready)
-  static const String googleMapsBase = 'https://maps.googleapis.com/maps/api';
-  static const String googleDirections = '/directions/json';
-  static const String googlePlacesAutocomplete = '/place/autocomplete/json';
-  static const String googlePlaceDetails = '/place/details/json';
-  static const String googleGeocode = '/geocode/json';
-
   // Timeout durations
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);

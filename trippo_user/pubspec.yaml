@@ -16,8 +16,9 @@ dependencies:
 
   # UI
   cupertino_icons: ^1.0.6
-  google_maps_flutter: ^2.5.3
-  flutter_polyline_points: ^1.0.0
+  # Open-source map (replaces google_maps_flutter)
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
   lottie: ^2.6.0
 
   # State Management
@@ -33,7 +34,6 @@ dependencies:
 
   # Location & Maps
   geolocator: ^10.1.0
-  geocoder2: ^1.4.0
 
   # Auth - Firebase only for push notifications, not core backend
   firebase_core: ^2.24.2
