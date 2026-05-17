@@ -4,31 +4,37 @@ import 'package:go_router/go_router.dart';
 import '../notifiers/auth_notifier.dart';
 import '../../../../core/constants/app_theme.dart';
 
-/// شاشة تسجيل الدخول - مدار
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+/// شاشة إنشاء حساب - مدار
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _login() {
+  void _register() {
     if (_formKey.currentState!.validate()) {
-      ref.read(authProvider.notifier).login(
+      ref.read(authProvider.notifier).register(
+            name: _nameController.text.trim(),
             email: _emailController.text.trim(),
+            phone: _phoneController.text.trim(),
             password: _passwordController.text,
           );
     }
@@ -47,52 +53,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 20),
-
-                // شعار مدار
-                Center(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Icon(
-                      Icons.local_taxi,
-                      size: 40,
-                      color: AppTheme.primary,
+                // زر العودة
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/login'),
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppTheme.surfaceVariant,
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
 
-                // عنوان الترحيب
+                // العنوان
                 const Text(
-                  'مرحباً بعودتك!',
+                  'إنشاء حساب جديد',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     color: AppTheme.textPrimary,
                   ),
-                  textAlign: TextAlign.center,
                 ),
 
                 const SizedBox(height: 8),
 
                 Text(
-                  'سجّل دخولك للمتابعة',
+                  'انضم إلى مدار واستمتع برحلات مريحة',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     color: Colors.grey[500],
                   ),
-                  textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
 
-                // حقل البريد الإلكتروني
+                // الاسم الكامل
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'الاسم الكامل',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'يرجى إدخال الاسم';
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // البريد الإلكتروني
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -110,7 +122,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 const SizedBox(height: 16),
 
-                // حقل كلمة المرور
+                // رقم الهاتف
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  textDirection: TextDirection.ltr,
+                  decoration: const InputDecoration(
+                    labelText: 'رقم الهاتف',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'يرجى إدخال رقم الهاتف';
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // كلمة المرور
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -125,40 +154,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) return 'يرجى إدخال كلمة المرور';
-                    if (value.length < 6) return 'كلمة المرور قصيرة جداً';
+                    if (value.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
                     return null;
                   },
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 32),
 
-                // نسيت كلمة المرور
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      'نسيت كلمة المرور؟',
-                      style: TextStyle(color: AppTheme.primary),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // زر تسجيل الدخول
+                // زر إنشاء الحساب
                 ElevatedButton(
-                  onPressed: authState.status == AuthStatus.loading ? null : _login,
+                  onPressed: authState.status == AuthStatus.loading ? null : _register,
                   child: authState.status == AuthStatus.loading
                       ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
+                          width: 24, height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                         )
-                      : const Text('تسجيل الدخول'),
+                      : const Text('إنشاء حساب'),
                 ),
 
                 if (authState.error != null) ...[
@@ -173,36 +184,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       children: [
                         const Icon(Icons.error_outline, color: AppTheme.error, size: 20),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            authState.error!,
-                            style: const TextStyle(color: AppTheme.error, fontSize: 13),
-                          ),
-                        ),
+                        Expanded(child: Text(authState.error!, style: const TextStyle(color: AppTheme.error, fontSize: 13))),
                       ],
                     ),
                   ),
                 ],
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
-                // إنشاء حساب جديد
+                // تسجيل الدخول
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      'ليس لديك حساب؟',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
+                    Text('لديك حساب بالفعل؟', style: TextStyle(color: Colors.grey[600])),
                     TextButton(
-                      onPressed: () => context.go('/register'),
-                      child: const Text(
-                        'إنشاء حساب',
-                        style: TextStyle(
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      onPressed: () => context.go('/login'),
+                      child: const Text('تسجيل الدخول', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ),

@@ -24,7 +24,7 @@ dependencies:
   socket_io_client: ^2.0.3+1
   # Utils
   uuid: ^4.2.2
-  intl: ^0.19.0
+  intl: any
   equatable: ^2.0.5
   # GeoJSON parsing for OSRM routes
   geojson_vi: ^2.0.3

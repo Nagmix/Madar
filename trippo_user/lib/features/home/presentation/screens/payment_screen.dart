@@ -605,7 +605,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   String _getMethodLabel(PaymentMethod method) => switch (method) {
         PaymentMethod.cash => 'Cash',
         PaymentMethod.card => 'Credit / Debit Card',
-        PaymentMethod.wallet => 'Trippo Wallet',
+        PaymentMethod.wallet => 'محفظة مدار',
       };
 }
 

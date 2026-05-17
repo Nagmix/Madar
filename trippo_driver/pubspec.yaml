@@ -15,6 +15,8 @@ dependencies:
     path: ../trippo_shared
 
   # UI
+  flutter_localizations:
+    sdk: flutter
   cupertino_icons: ^1.0.6
   # Open-source map (replaces google_maps_flutter)
   flutter_map: ^6.1.0
@@ -48,7 +50,7 @@ dependencies:
   url_launcher: ^6.2.2
 
   # Utils
-  intl: ^0.19.0
+  intl: any
   uuid: ^4.2.2
   equatable: ^2.0.5
   image_picker: ^1.0.7
@@ -73,19 +75,17 @@ flutter:
     - assets/imgs/
     - assets/animations/
 
+
   fonts:
-    - family: bold
-      fonts:
-        - asset: assets/fonts/Bold.ttf
-    - family: light
+    - family: MadarFont
       fonts:
         - asset: assets/fonts/Light.ttf
-    - family: medium
-      fonts:
-        - asset: assets/fonts/Medium.ttf
-    - family: regular
-      fonts:
+          weight: 300
         - asset: assets/fonts/Regular.ttf
-    - family: semiBold
-      fonts:
+          weight: 400
+        - asset: assets/fonts/Medium.ttf
+          weight: 500
         - asset: assets/fonts/SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Bold.ttf
+          weight: 700
