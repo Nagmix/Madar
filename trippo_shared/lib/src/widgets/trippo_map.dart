@@ -35,7 +35,7 @@ class TrippoMap extends StatefulWidget {
     this.polylines,
     this.circles,
     this.myLocationEnabled = true,
-    this.isDarkTheme = true,
+    this.isDarkTheme = false,
     this.onMapCreated,
     this.onCameraIdle,
     this.onCameraMove,
@@ -57,7 +57,7 @@ class TrippoMapState extends State<TrippoMap> with TickerProviderStateMixin {
   double _currentZoom;
 
   TrippoMapState()
-      : _currentCenter = const LatLng(24.7136, 46.6753),
+      : _currentCenter = const LatLng(15.3694, 44.1910),
         _currentZoom = 14.0;
 
   @override
@@ -127,9 +127,11 @@ class TrippoMapState extends State<TrippoMap> with TickerProviderStateMixin {
       ...?widget.markers,
       if (widget.myLocationEnabled && widget.currentUserLocation != null)
         Marker(
+          key: ValueKey('current_location'),
           point: widget.currentUserLocation!,
           width: 20,
           height: 20,
+          alignment: Alignment.center,
           child: Container(
             decoration: BoxDecoration(
               color: Colors.blue.withOpacity(0.3),
@@ -195,7 +197,7 @@ class TrippoMapState extends State<TrippoMap> with TickerProviderStateMixin {
               widget.onLongPress?.call(point);
             },
             interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.all,
+              flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag | InteractiveFlag.doubleTapZoom | InteractiveFlag.scrollWheelZoom,
             ),
           ),
           children: children,

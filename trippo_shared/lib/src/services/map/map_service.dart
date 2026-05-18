@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:math' as math;
 import 'osrm_routing_service.dart';
 import 'nominatim_service.dart';
 import 'tile_provider.dart';
@@ -151,7 +151,7 @@ class MapService {
   CameraFitResult calculateCameraFit(List<LatLng> points, {double padding = 0.02}) {
     if (points.isEmpty) {
       return const CameraFitResult(
-        center: LatLng(24.7136, 46.6753), // Riyadh default
+        center: LatLng(15.3694, 44.1910), // Sana'a, Yemen default
         zoom: 12.0,
       );
     }
@@ -159,7 +159,7 @@ class MapService {
     final bounds = RouteParser.calculateBounds(points);
     if (bounds == null) {
       return const CameraFitResult(
-        center: LatLng(24.7136, 46.6753),
+        center: LatLng(15.3694, 44.1910),
         zoom: 12.0,
       );
     }
@@ -289,58 +289,32 @@ class MapService {
     final lat2 = _toRadians(end.latitude);
     final dLng = _toRadians(end.longitude - start.longitude);
 
-    final y = dLng * (1 + (1 - (1 - (lat2 - lat1) / 2).abs() + (lat2 - lat1) / 2).abs());
-    final x = (lat2 - lat1).abs() < 0.0001
-        ? 0.0
-        : (lat2 - lat1);
+    // Bearing calculation using dart:math
+    final bearing = math.atan2(math.sin(dLng) * math.cos(lat2),
+        math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dLng));
 
-    // Simplified bearing calculation
-    final y2 = dLng * cos(lat1);
-    final x2 = lat2 - lat1;
-
-    // Using atan2 for proper bearing
-    final bearing = atan2(sin(dLng) * cos(lat2),
-        cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLng));
-
-    return (bearing * 180 / 3.14159265359 + 360) % 360;
+    return (bearing * 180 / math.pi + 360) % 360;
   }
 
-  // These are needed for the bearing calculation
-  double sin(double x) => x == 0 ? 0 : _dartSin(x);
-  double cos(double x) => x == 0 ? 1 : _dartCos(x);
-  double atan2(double y, double x) => _dartAtan2(y, x);
+  // Math functions provided by dart:math (accessed as math.sin, math.cos, etc.)
 
-  double _toRadians(double degrees) => degrees * 3.14159265359 / 180;
+  double _toRadians(double degrees) => degrees * math.pi / 180;
 
   /// Haversine distance between two points in meters
   double _haversineDistance(LatLng p1, LatLng p2) {
     const earthRadius = 6371000.0;
     final dLat = _toRadians(p2.latitude - p1.latitude);
     final dLng = _toRadians(p2.longitude - p1.longitude);
-    final a = _dartSin(dLat / 2) * _dartSin(dLat / 2) +
-        _dartCos(_toRadians(p1.latitude)) *
-            _dartCos(_toRadians(p2.latitude)) *
-            _dartSin(dLng / 2) * _dartSin(dLng / 2);
-    final c = 2 * _dartAtan2(_dartSqrt(a), _dartSqrt(1 - a));
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_toRadians(p1.latitude)) *
+            math.cos(_toRadians(p2.latitude)) *
+            math.sin(dLng / 2) * math.sin(dLng / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadius * c;
   }
 }
 
-// Dart math functions
-double _dartSin(double x) => (x == 0) ? 0 : x - (x * x * x) / 6 + (x * x * x * x * x) / 120;
-double _dartCos(double x) => (x == 0) ? 1 : 1 - (x * x) / 2 + (x * x * x * x) / 24;
-double _dartAtan2(double y, double x) {
-  if (x == 0) return y > 0 ? 1.57079632679 : -1.57079632679;
-  final angle = _dartAtan(y / x);
-  if (x < 0) return y >= 0 ? angle + 3.14159265359 : angle - 3.14159265359;
-  return angle;
-}
-double _dartAtan(double x) => x - (x * x * x) / 3 + (x * x * x * x * x) / 5;
-double _dartSqrt(double x) => x <= 0 ? 0 : _newtonSqrt(x, x / 2);
-double _newtonSqrt(double x, double guess) {
-  final next = (guess + x / guess) / 2;
-  return (guess - next).abs() < 0.00001 ? next : _newtonSqrt(x, next);
-}
+// Math functions provided by dart:math via 'math' prefix
 
 // ==================== Result Data Classes ====================
 

@@ -937,7 +937,7 @@ class MadarPriceTag extends StatelessWidget {
   const MadarPriceTag({
     super.key,
     required this.amount,
-    this.currency = 'ر.س',
+    this.currency = 'ر.ي',
     this.fontSize = 24,
     this.color,
   });

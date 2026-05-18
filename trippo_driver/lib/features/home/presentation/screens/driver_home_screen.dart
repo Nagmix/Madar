@@ -4,7 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:trippo_shared/trippo_shared.dart';
-import '../../../../core/constants/app_theme.dart';
+import '../notifiers/driver_home_notifier.dart';
 
 /// الشاشة الرئيسية للسائق - مدار
 class DriverHomeScreen extends ConsumerStatefulWidget {
@@ -17,9 +17,12 @@ class DriverHomeScreen extends ConsumerStatefulWidget {
 class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     with TickerProviderStateMixin {
   MapController? _mapController;
-  bool _isOnline = false;
-  LatLng? _currentPosition;
   late AnimationController _pulseController;
+  LatLng? _currentPosition;
+  double _heading = 0;
+
+  /// Default location: Sana'a, Yemen
+  static const LatLng _defaultLocation = LatLng(15.3694, 44.1910);
 
   @override
   void initState() {
@@ -28,17 +31,106 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat();
-    _getCurrentLocation();
+    _mapController = MapController();
+    _initLocation();
   }
 
-  Future<void> _getCurrentLocation() async {
+  /// Initialize: get current location and move map
+  Future<void> _initLocation() async {
+    await _goToMyLocation(animate: false);
+  }
+
+  /// Get current GPS position with full permission handling
+  Future<Position?> _getCurrentPositionWithPermission() async {
+    // 1. Check if location services are enabled
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('يرجى تفعيل خدمات الموقع'),
+            backgroundColor: MadarTheme.error,
+          ),
+        );
+      }
+      return null;
+    }
+
+    // 2. Check current permission
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    // 3. If denied, request permission
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم رفض إذن الموقع. يرجى السماح بالوصول للموقع'),
+              backgroundColor: MadarTheme.warning,
+            ),
+          );
+        }
+        return null;
+      }
+    }
+
+    // 4. If denied forever, open app settings
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('إذن الموقع مرفوض نهائياً. يرجى تفعيله من إعدادات التطبيق'),
+            backgroundColor: MadarTheme.error,
+            duration: Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'إعدادات',
+              textColor: Colors.white,
+              onPressed: Geolocator.openAppSettings,
+            ),
+          ),
+        );
+      }
+      // Try to open app settings
+      await Geolocator.openAppSettings();
+      return null;
+    }
+
+    // 5. Permission granted - get current position
     try {
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
       );
-      setState(() => _currentPosition = LatLng(position.latitude, position.longitude));
+      return position;
     } catch (e) {
-      setState(() => _currentPosition = const LatLng(24.7136, 46.6753));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل في الحصول على الموقع: $e'),
+            backgroundColor: MadarTheme.error,
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
+  /// Go to my current location
+  Future<void> _goToMyLocation({bool animate = true}) async {
+    final position = await _getCurrentPositionWithPermission();
+    if (position == null) return;
+
+    final latLng = LatLng(position.latitude, position.longitude);
+    setState(() {
+      _currentPosition = latLng;
+      _heading = position.heading;
+    });
+
+    if (_mapController != null) {
+      if (animate) {
+        _mapController!.move(latLng, 16.0);
+      }
     }
   }
 
@@ -50,34 +142,73 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final homeState = ref.watch(driverHomeProvider);
+    // Update local position from notifier
+    ref.listen<DriverHomeState>(driverHomeProvider, (prev, next) {
+      if (next.currentLocation != null) {
+        final newLatLng = LatLng(
+          next.currentLocation!.latitude,
+          next.currentLocation!.longitude,
+        );
+        setState(() {
+          _currentPosition = newLatLng;
+          _heading = next.heading;
+        });
+        // Animate map to follow driver when online
+        if (next.isOnline && _mapController != null) {
+          try {
+            _mapController!.move(newLatLng, _mapController!.camera.zoom);
+          } catch (_) {}
+        }
+      }
+    });
+
     return Scaffold(
       body: Stack(
         children: [
           // 1. Full-screen map
           FlutterMap(
-            mapController: MapController(),
+            mapController: _mapController,
             options: MapOptions(
-              initialCenter: _currentPosition ?? const LatLng(24.7136, 46.6753),
+              initialCenter: _currentPosition ?? _defaultLocation,
               initialZoom: 14.0,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all,
               ),
             ),
             children: [
+              // Light theme tiles
               TileLayer(
-                urlTemplate: TileProviderLayer.darkThemeTileUrl,
+                urlTemplate: TileProviderLayer.lightThemeTileUrl,
                 userAgentPackageName: 'com.madar.driver',
                 retinaMode: true,
                 maxZoom: 19,
               ),
+              // Current location blue pulsing dot marker
               if (_currentPosition != null)
                 MarkerLayer(
                   markers: [
                     Marker(
                       point: _currentPosition!,
-                      width: 60,
-                      height: 60,
-                      child: _buildDriverMarker(),
+                      width: 30,
+                      height: 30,
+                      child: CurrentLocationMarker(animation: _pulseController),
+                    ),
+                  ],
+                ),
+              // Car marker showing driver position (when online)
+              if (homeState.isOnline && _currentPosition != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _currentPosition!,
+                      width: 44,
+                      height: 44,
+                      child: CarMarker(
+                        heading: _heading,
+                        color: MadarTheme.primary,
+                        size: 44,
+                      ),
                     ),
                   ],
                 ),
@@ -106,7 +237,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               ),
               child: IconButton(
                 icon: const Icon(Icons.my_location, color: MadarTheme.primary),
-                onPressed: _getCurrentLocation,
+                onPressed: _goToMyLocation,
               ),
             ),
           ),
@@ -116,63 +247,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             left: 0,
             right: 0,
             bottom: 0,
-            child: _buildBottomPanel(),
+            child: _buildBottomPanel(homeState),
           ),
         ],
       ),
-    );
-  }
-
-  /// Driver marker with pulse animation
-  Widget _buildDriverMarker() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Pulse ring (only when online)
-        if (_isOnline)
-          AnimatedBuilder(
-            animation: _pulseController,
-            builder: (_, __) {
-              return Opacity(
-                opacity: (1 - _pulseController.value) * 0.4,
-                child: Transform.scale(
-                  scale: 1.0 + _pulseController.value * 0.8,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: MadarTheme.success,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        // Inner marker
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: _isOnline ? MadarTheme.success : MadarTheme.accent,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 3),
-            boxShadow: [
-              BoxShadow(
-                color: (_isOnline ? MadarTheme.success : MadarTheme.accent)
-                    .withOpacity(0.4),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.local_taxi,
-            color: Colors.white,
-            size: 12,
-          ),
-        ),
-      ],
     );
   }
 
@@ -226,7 +304,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  'ر.س 0.00',
+                  'ر.ي 0.00',
                   style: TextStyle(
                     fontFamily: MadarTheme.fontFamily,
                     fontWeight: FontWeight.w700,
@@ -243,7 +321,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   }
 
   /// Bottom panel with online/offline toggle
-  Widget _buildBottomPanel() {
+  Widget _buildBottomPanel(DriverHomeState homeState) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
@@ -277,12 +355,40 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           ),
           const SizedBox(height: MadarTheme.space20),
 
-          if (_isOnline) ...[
+          // Show error if any
+          if (homeState.error != null) ...[
+            Container(
+              padding: const EdgeInsets.all(MadarTheme.space12),
+              decoration: BoxDecoration(
+                color: MadarTheme.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(MadarTheme.radiusMd),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: MadarTheme.error, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      homeState.error!,
+                      style: const TextStyle(
+                        fontFamily: MadarTheme.fontFamily,
+                        fontSize: 13,
+                        color: MadarTheme.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: MadarTheme.space12),
+          ],
+
+          if (homeState.isOnline) ...[
             // Online state
-            _buildOnlinePanel(),
+            _buildOnlinePanel(homeState),
           ] else ...[
             // Offline state
-            _buildOfflinePanel(),
+            _buildOfflinePanel(homeState),
           ],
         ],
       ),
@@ -290,7 +396,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   }
 
   /// Offline panel - large "ابدأ العمل" button
-  Widget _buildOfflinePanel() {
+  Widget _buildOfflinePanel(DriverHomeState homeState) {
     return Column(
       children: [
         // Status text
@@ -334,14 +440,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           icon: Icons.power_settings_new,
           height: 60,
           gradientColors: const [MadarTheme.accent, MadarTheme.accentDark],
-          onPressed: () => setState(() => _isOnline = true),
+          isLoading: homeState.isLoading,
+          onPressed: homeState.isLoading
+              ? null
+              : () => ref.read(driverHomeProvider.notifier).goOnline(),
         ),
       ],
     );
   }
 
   /// Online panel - stats and stop button
-  Widget _buildOnlinePanel() {
+  Widget _buildOnlinePanel(DriverHomeState homeState) {
     return Column(
       children: [
         // Green pulsing indicator + status
@@ -402,7 +511,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           ),
           child: Row(
             children: [
-              _buildStatItem('أرباح اليوم', 'ر.س 0', Icons.attach_money, MadarTheme.primary),
+              _buildStatItem('أرباح اليوم', 'ر.ي 0', Icons.attach_money, MadarTheme.primary),
               Container(
                 width: 1,
                 height: 40,
@@ -425,7 +534,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           width: double.infinity,
           height: 52,
           child: OutlinedButton(
-            onPressed: () => setState(() => _isOnline = false),
+            onPressed: homeState.isLoading
+                ? null
+                : () => ref.read(driverHomeProvider.notifier).goOffline(),
             style: OutlinedButton.styleFrom(
               foregroundColor: MadarTheme.error,
               side: const BorderSide(color: MadarTheme.error, width: 1.5),
@@ -438,7 +549,16 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 fontWeight: FontWeight.w700,
               ),
             ),
-            child: const Text('إيقاف'),
+            child: homeState.isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(MadarTheme.error),
+                    ),
+                  )
+                : const Text('إيقاف'),
           ),
         ),
       ],
@@ -473,4 +593,3 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
   }
 }
-

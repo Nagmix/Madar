@@ -14,7 +14,7 @@ class TileProviderLayer {
   // ==================== Configuration ====================
 
   /// Current tile provider mode
-  static TileProviderMode _mode = TileProviderMode.openStreetMap;
+  static TileProviderMode _mode = TileProviderMode.cartoLight;
 
   /// Custom tile server URL (for self-hosted)
   static String? _customTileUrl;

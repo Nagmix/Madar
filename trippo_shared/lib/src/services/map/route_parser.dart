@@ -18,8 +18,8 @@ class RouteParser {
   /// GeoJSON format: [longitude, latitude] (x, y order)
   /// LatLng format: (latitude, longitude) (y, x order)
   ///
-  /// Input: [[46.6753, 24.7136], [46.6760, 24.7140], ...]
-  /// Output: [LatLng(24.7136, 46.6753), LatLng(24.7140, 46.6760), ...]
+  /// Input: [[44.1910, 15.3694], [44.1920, 15.3700], ...]
+  /// Output: [LatLng(15.3694, 44.1910), LatLng(15.3700, 44.1920), ...]
   static List<LatLng> parseGeoJsonCoordinates(List<dynamic> coordinates) {
     final points = <LatLng>[];
 

@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../map/presentation/notifiers/map_notifier.dart';
 import '../../../trip/presentation/notifiers/trip_notifier.dart';
@@ -15,17 +15,20 @@ class WhereToSheet extends ConsumerStatefulWidget {
 
 class _WhereToSheetState extends ConsumerState<WhereToSheet> {
   final _searchController = TextEditingController();
+  Timer? _debounceTimer;
   bool _isSearching = false;
   List<PlaceResult> _searchResults = [];
   VehicleType _selectedVehicleType = VehicleType.sedan;
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _searchPlaces(String query) async {
+  void _searchPlaces(String query) {
+    _debounceTimer?.cancel();
     if (query.length < 2) {
       setState(() {
         _searchResults = [];
@@ -33,17 +36,24 @@ class _WhereToSheetState extends ConsumerState<WhereToSheet> {
       });
       return;
     }
-    setState(() => _isSearching = true);
-    try {
-      final results =
-          await ref.read(mapLocationProvider.notifier).searchPlaces(query);
-      setState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
-    } catch (e) {
-      setState(() => _isSearching = false);
-    }
+    // Debounce to respect Nominatim rate limits (1 req/sec)
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      setState(() => _isSearching = true);
+      try {
+        final results =
+            await ref.read(mapLocationProvider.notifier).searchPlaces(query);
+        if (mounted) {
+          setState(() {
+            _searchResults = results;
+            _isSearching = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSearching = false);
+        }
+      }
+    });
   }
 
   void _selectDestination(PlaceResult place) {
@@ -301,13 +311,13 @@ class _WhereToSheetState extends ConsumerState<WhereToSheet> {
           Row(
             children: [
               _vehicleOption(Icons.directions_car, 'سيدان', VehicleType.sedan,
-                  '${(15).toStringAsFixed(0)} ر.س'),
+                  '800 ر.ي'),
               const SizedBox(width: 8),
               _vehicleOption(
-                  Icons.local_taxi, 'مريح', VehicleType.suv, '${(22).toStringAsFixed(0)} ر.س'),
+                  Icons.local_taxi, 'مريح', VehicleType.suv, '1200 ر.ي'),
               const SizedBox(width: 8),
               _vehicleOption(Icons.airport_shuttle, 'فان', VehicleType.van,
-                  '${(30).toStringAsFixed(0)} ر.س'),
+                  '1500 ر.ي'),
             ],
           ),
         ],
@@ -391,4 +401,3 @@ class _WhereToSheetState extends ConsumerState<WhereToSheet> {
     );
   }
 }
-

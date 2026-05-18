@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../../core/app_providers.dart';
-import '../../../../core/network/nestjs_api_client.dart';
-import '../../../auth/presentation/notifiers/driver_auth_notifier.dart';
 import '../../../dispatch/presentation/notifiers/dispatch_notifier.dart';
 
 /// Nearby area statistics (visible to driver when online)
@@ -42,6 +42,9 @@ class DriverHomeState {
   /// Current GPS location of the driver
   final LocationPoint? currentLocation;
 
+  /// Current heading/bearing in degrees (0 = north, clockwise)
+  final double heading;
+
   /// Nearby area statistics
   final NearbyStats nearbyStats;
 
@@ -60,9 +63,13 @@ class DriverHomeState {
   /// Timestamp when driver went online
   final DateTime? wentOnlineAt;
 
+  /// Default fallback location (Sana'a, Yemen)
+  static const LatLng defaultLocation = LatLng(15.3694, 44.1910);
+
   const DriverHomeState({
     this.isOnline = false,
     this.currentLocation,
+    this.heading = 0,
     this.nearbyStats = const NearbyStats(),
     this.isTrackingLocation = false,
     this.isLoading = false,
@@ -74,6 +81,7 @@ class DriverHomeState {
   DriverHomeState copyWith({
     bool? isOnline,
     LocationPoint? currentLocation,
+    double? heading,
     NearbyStats? nearbyStats,
     bool? isTrackingLocation,
     bool? isLoading,
@@ -84,6 +92,7 @@ class DriverHomeState {
       DriverHomeState(
         isOnline: isOnline ?? this.isOnline,
         currentLocation: currentLocation ?? this.currentLocation,
+        heading: heading ?? this.heading,
         nearbyStats: nearbyStats ?? this.nearbyStats,
         isTrackingLocation: isTrackingLocation ?? this.isTrackingLocation,
         isLoading: isLoading ?? this.isLoading,
@@ -102,7 +111,7 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
   final Ref _ref;
   Timer? _locationUpdateTimer;
   Timer? _onlineDurationTimer;
-  StreamSubscription<LocationPoint>? _locationSubscription;
+  StreamSubscription<Position>? _positionStreamSubscription;
 
   /// Location update interval when online (5 seconds)
   static const Duration _locationUpdateInterval = Duration(seconds: 5);
@@ -112,6 +121,44 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
 
   DriverHomeNotifier(this._ref) : super(const DriverHomeState());
 
+  /// Check and request location permission
+  /// Returns true if permission is granted
+  Future<bool> _checkLocationPermission() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return false;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return false;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      // Could open app settings here, but we return false
+      // and let the UI handle it
+      return false;
+    }
+    return true;
+  }
+
+  /// Get current GPS position
+  Future<Position?> _getCurrentPosition() async {
+    final hasPermission = await _checkLocationPermission();
+    if (!hasPermission) return null;
+
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Go online - POST /drivers/online with current GPS
   /// Starts GPS tracking service and joins dispatch room
   Future<void> goOnline() async {
@@ -120,21 +167,27 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final apiClient = _ref.read(nestjsApiClientProvider);
-      final gpsService = _ref.read(gpsTrackingServiceProvider);
-
-      // Get current location first
-      final currentLocation = await gpsService.getCurrentLocation();
-
-      if (currentLocation == null) {
+      // Get current GPS position first
+      final position = await _getCurrentPosition();
+      if (position == null) {
         state = state.copyWith(
           isLoading: false,
-          error: 'Unable to get current location. Please enable GPS.',
+          error: 'Unable to get current location. Please enable GPS and grant location permission.',
         );
         return;
       }
 
+      final currentLocation = LocationPoint(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        accuracy: position.accuracy,
+        heading: position.heading,
+        speed: position.speed,
+        timestamp: DateTime.now(),
+      );
+
       // Tell server the driver is online with current GPS
+      final apiClient = _ref.read(nestjsApiClientProvider);
       await apiClient.setDriverOnline(
         latitude: currentLocation.latitude,
         longitude: currentLocation.longitude,
@@ -142,16 +195,8 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
         accuracy: currentLocation.accuracy,
       );
 
-      // Start GPS tracking service
-      final trackingStarted = await gpsService.startTracking(
-        highAccuracy: true,
-      );
-
-      if (trackingStarted) {
-        // Listen to filtered location updates
-        _locationSubscription =
-            gpsService.filteredLocationStream.listen(_handleLocationUpdate);
-      }
+      // Start real-time position stream
+      _startPositionStream();
 
       // Start dispatch listening
       final dispatchNotifier = _ref.read(dispatchProvider.notifier);
@@ -166,7 +211,8 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
       state = state.copyWith(
         isOnline: true,
         currentLocation: currentLocation,
-        isTrackingLocation: trackingStarted,
+        heading: currentLocation.heading,
+        isTrackingLocation: true,
         isLoading: false,
         wentOnlineAt: DateTime.now(),
         onlineDuration: Duration.zero,
@@ -175,6 +221,57 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
+      );
+    }
+  }
+
+  /// Start listening to GPS position stream for real-time tracking
+  void _startPositionStream() {
+    _stopPositionStream();
+
+    const locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 5, // Minimum 5 meters between updates
+    );
+
+    _positionStreamSubscription = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen(_handlePositionUpdate);
+  }
+
+  /// Stop the position stream
+  void _stopPositionStream() {
+    _positionStreamSubscription?.cancel();
+    _positionStreamSubscription = null;
+  }
+
+  /// Handle position update from GPS stream
+  void _handlePositionUpdate(Position position) {
+    final locationPoint = LocationPoint(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      accuracy: position.accuracy,
+      heading: position.heading,
+      speed: position.speed,
+      timestamp: DateTime.now(),
+    );
+
+    // Update state with new location and heading
+    state = state.copyWith(
+      currentLocation: locationPoint,
+      heading: position.heading,
+    );
+
+    // Send location update via Socket.IO immediately for real-time tracking
+    if (state.isOnline) {
+      final socketService = _ref.read(driverSocketServiceProvider);
+      socketService.emitDriverLocation(
+        tripId: '',
+        latitude: locationPoint.latitude,
+        longitude: locationPoint.longitude,
+        heading: locationPoint.heading,
+        speed: locationPoint.speed,
+        accuracy: locationPoint.accuracy,
       );
     }
   }
@@ -190,11 +287,8 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
       final apiClient = _ref.read(nestjsApiClientProvider);
       await apiClient.setDriverOffline();
 
-      // Stop GPS tracking
-      final gpsService = _ref.read(gpsTrackingServiceProvider);
-      gpsService.stopTracking();
-      _locationSubscription?.cancel();
-      _locationSubscription = null;
+      // Stop position stream
+      _stopPositionStream();
 
       // Stop dispatch listening
       final dispatchNotifier = _ref.read(dispatchProvider.notifier);
@@ -209,6 +303,7 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
         isTrackingLocation: false,
         isLoading: false,
         currentLocation: null,
+        heading: 0,
         wentOnlineAt: null,
         onlineDuration: null,
       );
@@ -264,28 +359,11 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
           speed: speed ?? 0,
           timestamp: DateTime.now(),
         ),
+        heading: heading ?? state.heading,
       );
     } catch (e) {
       // Don't update error state for location failures to avoid UI flicker
       // Location updates are best-effort
-    }
-  }
-
-  /// Handle location update from GPS tracking service
-  void _handleLocationUpdate(LocationPoint location) {
-    state = state.copyWith(currentLocation: location);
-
-    // Send location update via Socket.IO immediately for real-time tracking
-    if (state.isOnline) {
-      final socketService = _ref.read(driverSocketServiceProvider);
-      socketService.emitDriverLocation(
-        tripId: '',
-        latitude: location.latitude,
-        longitude: location.longitude,
-        heading: location.heading,
-        speed: location.speed,
-        accuracy: location.accuracy,
-      );
     }
   }
 
@@ -317,8 +395,6 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
   void _startOnlineDurationTimer() {
     _stopOnlineDurationTimer();
 
-    final wentOnlineAt = DateTime.now();
-
     _onlineDurationTimer = Timer.periodic(_durationUpdateInterval, (_) {
       if (state.wentOnlineAt != null) {
         final duration = DateTime.now().difference(state.wentOnlineAt!);
@@ -347,11 +423,19 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
     state = state.copyWith(nearbyStats: stats);
   }
 
+  /// Get current LatLng for the map
+  LatLng get currentLatLng {
+    if (state.currentLocation != null) {
+      return LatLng(state.currentLocation!.latitude, state.currentLocation!.longitude);
+    }
+    return DriverHomeState.defaultLocation;
+  }
+
   @override
   void dispose() {
     _stopLocationUpdateTimer();
     _stopOnlineDurationTimer();
-    _locationSubscription?.cancel();
+    _stopPositionStream();
     super.dispose();
   }
 }
@@ -372,6 +456,12 @@ final isDriverOnlineProvider = Provider<bool>((ref) {
 final driverCurrentLocationProvider = Provider<LocationPoint?>((ref) {
   final homeState = ref.watch(driverHomeProvider);
   return homeState.currentLocation;
+});
+
+/// Driver current heading provider
+final driverHeadingProvider = Provider<double>((ref) {
+  final homeState = ref.watch(driverHomeProvider);
+  return homeState.heading;
 });
 
 /// Driver online duration provider

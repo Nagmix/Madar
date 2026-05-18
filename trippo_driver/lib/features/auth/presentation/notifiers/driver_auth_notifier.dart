@@ -241,3 +241,10 @@ final driverAuthProvider =
   return DriverAuthNotifier(ref);
 });
 
+
+/// Current Driver Provider - selects current driver from auth state
+/// Used by dispatch and trip notifiers to get the current driver ID
+final currentDriverProvider = Provider<DriverModel?>((ref) {
+  final authState = ref.watch(driverAuthProvider);
+  return authState.driver;
+});

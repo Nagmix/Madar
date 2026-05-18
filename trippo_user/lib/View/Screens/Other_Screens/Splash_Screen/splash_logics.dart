@@ -43,7 +43,7 @@ class SplashLogics{
         } else {
           if (context.mounted) {
             ErrorNotification().showError(
-                context, "Location Access is required to run Trippo.");
+                context, "Location Access is required to run مدار.");
           }
           await Future.delayed(const Duration(seconds: 2));
           SystemChannels.platform
@@ -60,7 +60,7 @@ class SplashLogics{
           permission == LocationPermission.unableToDetermine) {
         if (context.mounted) {
           ErrorNotification()
-              .showError(context, "Location Access is required to run Trippo.");
+              .showError(context, "Location Access is required to run مدار.");
           await Future.delayed(const Duration(seconds: 2));
           SystemChannels.platform
               .invokeMethod("SystemNavigator.pop");

@@ -41,6 +41,7 @@ export 'src/theme/madar_theme.dart';
 export 'src/widgets/madar_widgets.dart';
 export 'src/widgets/madar_loading.dart';
 export 'src/widgets/trippo_map.dart';
+export 'src/widgets/car_marker.dart';
 
 // Utils
 export 'src/utils/kalman_filter.dart';

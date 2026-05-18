@@ -24,7 +24,7 @@ class UserModel with _$UserModel {
     @Default(0) int totalRides,
     @Default(0) int cancellations,
     @Default('en') String preferredLanguage,
-    @Default('USD') String preferredCurrency,
+    @Default('YER') String preferredCurrency,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? lastActiveAt,

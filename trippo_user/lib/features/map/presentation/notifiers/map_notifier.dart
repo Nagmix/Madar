@@ -5,7 +5,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:trippo_shared/trippo_shared.dart';
 import '../../../../core/app_providers.dart';
-import '../../../../core/constants/app_config.dart';
+
+/// Default location - Sana'a, Yemen
+const LatLng _defaultLocation = LatLng(15.3694, 44.1910);
 
 /// Map color constants
 class _MapColors {
@@ -92,9 +94,30 @@ class MapLocationNotifier extends StateNotifier<MapLocationState> {
     _initUserLocation();
   }
 
-  /// Initialize user location on startup
+  /// Initialize user location on startup with permission handling
   Future<void> _initUserLocation() async {
     try {
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          // Permission denied - fall back to Sana'a
+          state = state.copyWith(currentUserLocation: _defaultLocation);
+          await setPickupFromCurrentLocation();
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        // Permission permanently denied - fall back to Sana'a
+        state = state.copyWith(currentUserLocation: _defaultLocation);
+        await setPickupFromCurrentLocation();
+        return;
+      }
+
+      // Permission granted - get actual position
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -104,7 +127,9 @@ class MapLocationNotifier extends StateNotifier<MapLocationState> {
       // Auto-set pickup to current location
       await setPickupFromCurrentLocation();
     } catch (e) {
-      // Location permission denied or unavailable
+      // Location unavailable - fall back to Sana'a
+      state = state.copyWith(currentUserLocation: _defaultLocation);
+      await setPickupFromCurrentLocation();
     }
   }
 
@@ -131,7 +156,7 @@ class MapLocationNotifier extends StateNotifier<MapLocationState> {
       // Still set the location even if geocoding fails
       state = state.copyWith(
         pickupLocation: state.currentUserLocation,
-        pickupAddress: 'Current Location',
+        pickupAddress: 'الموقع الحالي',
         isLoading: false,
       );
       _updateMarkersAndCircles();
@@ -248,8 +273,6 @@ class MapLocationNotifier extends StateNotifier<MapLocationState> {
 
   /// Update driver marker position (for real-time tracking)
   void updateDriverMarker(String driverId, LatLng position, {double? bearing}) {
-    // For now, update the markers list
-    // In production, this would smoothly animate the marker
     _updateMarkersAndCircles();
   }
 
@@ -286,19 +309,23 @@ class MapLocationNotifier extends StateNotifier<MapLocationState> {
       ));
     }
 
-    // Nearby drivers markers
+    // Nearby drivers markers with taxi icon
     for (final driver in state.nearbyDrivers) {
       if (driver.currentLocation != null) {
         markers.add(Marker(
           point: LatLng(driver.currentLocation!.latitude, driver.currentLocation!.longitude),
-          width: 30,
-          height: 30,
-          child: Transform.rotate(
-            angle: (0) * 3.14159 / 180,
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFB300).withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
             child: const Icon(
-              Icons.directions_car,
-              color: Colors.yellow,
-              size: 30,
+              Icons.local_taxi,
+              color: Color(0xFFFFB300),
+              size: 24,
             ),
           ),
         ));

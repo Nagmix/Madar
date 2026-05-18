@@ -290,10 +290,10 @@ class PredictedPlace {
   /// OSM place_id or internal ID
   final String placeId;
 
-  /// Main text (e.g., "Riyadh International Airport")
+  /// Main text (e.g., "Sana'a International Airport")
   final String mainText;
 
-  /// Secondary text (e.g., "King Fahd Road, Riyadh, Saudi Arabia")
+  /// Secondary text (e.g., "Al-Zubairi Street, Sana'a, Yemen")
   final String secondaryText;
 
   /// Full description

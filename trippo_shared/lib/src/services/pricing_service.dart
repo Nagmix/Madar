@@ -21,7 +21,7 @@ class PricingService {
     double waitingFeePerMinute = AppConstants.defaultWaitingFeePerMinute,
     int freeWaitingMinutes = 3,
     double promoDiscount = 0.0,
-    String currency = 'USD',
+    String currency = 'YER',
   }) {
     // 1. Get vehicle type multiplier
     final vehicleMultiplier = AppConstants.vehicleTypeMultipliers[vehicleType] ?? 1.0;
@@ -142,8 +142,9 @@ class PricingService {
   }
 
   /// Format fare amount with currency symbol
-  String formatFare(double amount, {String currency = 'USD'}) {
+  String formatFare(double amount, {String currency = 'YER'}) {
     final symbols = {
+      'YER': 'ر.ي',
       'USD': '\$',
       'SAR': 'ر.س',
       'AED': 'د.إ',

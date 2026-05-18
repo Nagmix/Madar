@@ -11,14 +11,14 @@ class AppConstants {
   static const int defaultPageSize = 20;
   
   // Map defaults
-  static const double defaultLatitude = 24.7136;
-  static const double defaultLongitude = 46.6753;
+  static const double defaultLatitude = 15.3694;
+  static const double defaultLongitude = 44.1910;
   static const double defaultZoom = 14.0;
   
   // Trip
   static const int searchDriverTimeoutSeconds = 30;
   static const int maxRetryAttempts = 3;
-  static const double minimumFare = 10.0;
+  static const double minimumFare = 600.0;
   static const int maxTripsPerHour = 6;
   static const int maxCancellationPerDay = 5;
   
@@ -40,12 +40,12 @@ class AppConstants {
   static const int ratingDisplayDecimals = 1;
   
   // Pricing defaults
-  static const double defaultBaseFare = 8.0;
-  static const double defaultPerKmRate = 2.0;
-  static const double defaultPerMinuteRate = 0.5;
-  static const double defaultMinimumFare = 10.0;
-  static const double defaultCancellationFee = 5.0;
-  static const double defaultWaitingFeePerMinute = 0.5;
+  static const double defaultBaseFare = 500.0;
+  static const double defaultPerKmRate = 150.0;
+  static const double defaultPerMinuteRate = 25.0;
+  static const double defaultMinimumFare = 600.0;
+  static const double defaultCancellationFee = 200.0;
+  static const double defaultWaitingFeePerMinute = 30.0;
   static const double driverCommissionRate = 0.20;
   static const double driverIncentiveBonusRate = 0.05;
   
@@ -69,8 +69,8 @@ class AppConstants {
   static const double surgeMultiplierExtreme = 3.0;
   
   // Wallet
-  static const double minimumWithdrawalAmount = 50.0;
-  static const double maximumWithdrawalAmount = 5000.0;
+  static const double minimumWithdrawalAmount = 1000.0;
+  static const double maximumWithdrawalAmount = 100000.0;
   
   // Notification channels
   static const String channelRideUpdates = 'ride_updates';

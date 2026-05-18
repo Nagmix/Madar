@@ -27,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
               height: size.height,
               child: Center(
                 child: Text(
-                  "Trippo",
+                  "مدار",
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall!

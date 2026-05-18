@@ -1,4 +1,4 @@
-/// Background Location Service for Trippo Driver App
+/// Background Location Service for مدار Driver App
 ///
 /// This service provides continuous GPS location tracking that persists even when
 /// the app moves to the background. It is designed for ride-hailing driver use
@@ -816,7 +816,7 @@ class BackgroundLocationNotifier extends StateNotifier<BackgroundLocationState> 
     //     onStart: _onForegroundServiceStart,
     //     autoStart: true,
     //     isForegroundMode: true,
-    //     notificationTitle: 'Trippo Driver',
+    //     notificationTitle: 'مدار Driver',
     //     notificationText: 'Tracking your location',
     //     notificationIcon: AndroidResource(name: 'ic_launcher'),
     //   ),
@@ -873,7 +873,7 @@ class BackgroundLocationNotifier extends StateNotifier<BackgroundLocationState> 
     //   }
     //   // Could send a heartbeat here
     //   service.setNotificationInfo(
-    //     title: 'Trippo Driver',
+    //     title: 'مدار Driver',
     //     content: 'Location tracking active',
     //   );
     // });

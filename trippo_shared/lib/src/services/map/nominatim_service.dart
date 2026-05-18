@@ -48,15 +48,16 @@ class NominatimService {
   ///
   /// Returns a list of matching places with coordinates and addresses.
   /// Uses Nominatim search API.
+  /// Defaults to Yemen (country code 'ye') and Yemen's bounded viewbox.
   Future<List<NominatimResult>> search(
     String query, {
     int limit = 5,
     LatLng? nearPosition,
-    double? viewboxMinLat,
-    double? viewboxMinLng,
-    double? viewboxMaxLat,
-    double? viewboxMaxLng,
-    List<String> countryCodes = const [],
+    double? viewboxMinLat = 12.1,
+    double? viewboxMinLng = 42.5,
+    double? viewboxMaxLat = 19.0,
+    double? viewboxMaxLng = 54.0,
+    List<String> countryCodes = const ['ye'],
     bool bounded = false,
   }) async {
     try {
@@ -154,10 +155,16 @@ class NominatimService {
   }) async {
     // Nominatim doesn't have a dedicated autocomplete endpoint,
     // but we can use the search endpoint with appropriate parameters
+    // Defaults to Yemen bounds via the search method
     return search(
       query,
       limit: limit,
       nearPosition: nearPosition,
+      countryCodes: const ['ye'],
+      viewboxMinLat: 12.1,
+      viewboxMinLng: 42.5,
+      viewboxMaxLat: 19.0,
+      viewboxMaxLng: 54.0,
     );
   }
 

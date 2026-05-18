@@ -12,6 +12,9 @@ import '../widgets/ride_request_sheet.dart';
 import '../widgets/trip_progress_sheet.dart';
 import '../../../auth/presentation/notifiers/auth_notifier.dart';
 
+/// Default location - Sana'a, Yemen
+const LatLng _defaultLocation = LatLng(15.3694, 44.1910);
+
 /// الشاشة الرئيسية - مدار
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -32,28 +35,102 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _getCurrentLocation();
   }
 
+  /// Request location permission and get current position
   Future<void> _getCurrentLocation() async {
     try {
+      // Check current permission status
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          // Permission denied - use default Sana'a
+          if (mounted) {
+            setState(() => _currentPosition = _defaultLocation);
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        // Permission permanently denied - open app settings
+        await Geolocator.openAppSettings();
+        if (mounted) {
+          setState(() => _currentPosition = _defaultLocation);
+        }
+        return;
+      }
+
+      // Permission granted - get current position
       final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-      setState(() =>
-          _currentPosition = LatLng(position.latitude, position.longitude));
-      if (_mapController != null && _isMapReady) {
-        _mapController!.move(_currentPosition!, 14.0);
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      if (mounted) {
+        setState(() =>
+            _currentPosition = LatLng(position.latitude, position.longitude));
+        if (_mapController != null && _isMapReady) {
+          _mapController!.move(_currentPosition!, 14.0);
+        }
       }
     } catch (e) {
-      setState(() => _currentPosition = const LatLng(24.7136, 46.6753));
+      if (mounted) {
+        setState(() => _currentPosition = _defaultLocation);
+      }
     }
   }
 
-  void _goToMyLocation() async {
+  /// Handle the "my location" button tap with permission flow
+  Future<void> _goToMyLocation() async {
     try {
+      // Check current permission
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          // Still denied - show snackbar
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('يرجى السماح بالوصول إلى الموقع'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        // Permanently denied - open settings
+        await Geolocator.openAppSettings();
+        return;
+      }
+
+      // Get current GPS position
       final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high,
+      );
       final loc = LatLng(position.latitude, position.longitude);
-      _mapController?.move(loc, 14.0);
+
+      // Animate map to position with zoom 16
+      if (_mapController != null && _isMapReady) {
+        _mapController!.move(loc, 16.0);
+      }
       setState(() => _currentPosition = loc);
-    } catch (e) {}
+
+      // Update the map notifier with current location
+      ref.read(mapLocationProvider.notifier).updateUserLocation(loc);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('لم يتم العثور على الموقع'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -63,167 +140,171 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       drawer: _buildAppDrawer(context),
-      body: Stack(
-        children: [
-          // ── الخريطة ──
-          FlutterMap(
-            mapController: _mapController!,
-            options: MapOptions(
-              initialCenter:
-                  _currentPosition ?? const LatLng(24.7136, 46.6753),
-              initialZoom: 14.0,
-              onMapReady: () => _isMapReady = true,
-              onPositionChanged: (position, hasGesture) {
-                if (hasGesture) {
-                  _currentPosition = position.center ?? _currentPosition!;
-                }
-              },
-              interactionOptions:
-                  const InteractionOptions(flags: InteractiveFlag.all),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: TileProviderLayer.darkThemeTileUrl,
-                userAgentPackageName: 'com.madar.rider',
-                retinaMode: true,
-                maxZoom: 19,
+      body: Builder(
+        builder: (scaffoldContext) => Stack(
+          children: [
+            // ── الخريطة ──
+            FlutterMap(
+              mapController: _mapController!,
+              options: MapOptions(
+                initialCenter:
+                    _currentPosition ?? _defaultLocation,
+                initialZoom: 14.0,
+                onMapReady: () => _isMapReady = true,
+                onPositionChanged: (position, hasGesture) {
+                  if (hasGesture) {
+                    _currentPosition = position.center ?? _currentPosition ?? _defaultLocation;
+                  }
+                },
+                interactionOptions:
+                    const InteractionOptions(flags: InteractiveFlag.all),
               ),
-              if (mapState.circles.isNotEmpty)
-                CircleLayer(circles: mapState.circles),
-              if (mapState.polylines.isNotEmpty)
-                PolylineLayer(polylines: mapState.polylines),
-              MarkerLayer(
-                markers: [
-                  // موقع المستخدم الحالي مع نبضة
-                  if (mapState.currentUserLocation != null)
-                    Marker(
-                      point: mapState.currentUserLocation!,
-                      width: 48,
-                      height: 48,
-                      child: _CurrentUserMarker(),
-                    ),
-                  // نقطة الانطلاق
-                  if (mapState.pickupLocation != null)
-                    Marker(
-                      point: mapState.pickupLocation!,
-                      width: 40,
-                      height: 40,
-                      child: const Icon(Icons.location_on,
-                          color: MadarTheme.mapPickup, size: 40),
-                    ),
-                  // نقطة الوصول
-                  if (mapState.dropoffLocation != null)
-                    Marker(
-                      point: mapState.dropoffLocation!,
-                      width: 40,
-                      height: 40,
-                      child: const Icon(Icons.location_on,
-                          color: MadarTheme.mapDropoff, size: 40),
-                    ),
-                  // السائقون القريبون
-                  ...mapState.nearbyDrivers
-                      .where((d) => d.currentLocation != null)
-                      .map((driver) => Marker(
-                            point: LatLng(driver.currentLocation!.latitude,
-                                driver.currentLocation!.longitude),
-                            width: 36,
-                            height: 36,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: MadarTheme.mapDriver.withOpacity(0.15),
-                                shape: BoxShape.circle,
+              children: [
+                TileLayer(
+                  urlTemplate: TileProviderLayer.lightThemeTileUrl,
+                  userAgentPackageName: 'com.madar.rider',
+                  retinaMode: true,
+                  maxZoom: 19,
+                ),
+                if (mapState.circles.isNotEmpty)
+                  CircleLayer(circles: mapState.circles),
+                if (mapState.polylines.isNotEmpty)
+                  PolylineLayer(polylines: mapState.polylines),
+                MarkerLayer(
+                  markers: [
+                    // موقع المستخدم الحالي مع نبضة
+                    if (mapState.currentUserLocation != null)
+                      Marker(
+                        point: mapState.currentUserLocation!,
+                        width: 48,
+                        height: 48,
+                        alignment: Alignment.center,
+                        child: const _CurrentUserMarker(),
+                      ),
+                    // نقطة الانطلاق
+                    if (mapState.pickupLocation != null)
+                      Marker(
+                        point: mapState.pickupLocation!,
+                        width: 40,
+                        height: 40,
+                        child: const Icon(Icons.location_on,
+                            color: MadarTheme.mapPickup, size: 40),
+                      ),
+                    // نقطة الوصول
+                    if (mapState.dropoffLocation != null)
+                      Marker(
+                        point: mapState.dropoffLocation!,
+                        width: 40,
+                        height: 40,
+                        child: const Icon(Icons.location_on,
+                            color: MadarTheme.mapDropoff, size: 40),
+                      ),
+                    // السائقون القريبون
+                    ...mapState.nearbyDrivers
+                        .where((d) => d.currentLocation != null)
+                        .map((driver) => Marker(
+                              point: LatLng(driver.currentLocation!.latitude,
+                                  driver.currentLocation!.longitude),
+                              width: 36,
+                              height: 36,
+                              alignment: Alignment.center,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: MadarTheme.mapDriver.withOpacity(0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.local_taxi,
+                                    color: MadarTheme.mapDriver, size: 24),
                               ),
-                              child: const Icon(Icons.directions_car,
-                                  color: MadarTheme.mapDriver, size: 24),
-                            ),
-                          )),
-                ],
-              ),
-            ],
-          ),
-
-          // ── دبوس المركز ──
-          if (mapState.dropoffLocation == null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 40),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.location_on,
-                        color: MadarTheme.mapPickup, size: 40),
-                    Container(
-                        width: 2,
-                        height: 10,
-                        color: MadarTheme.mapPickup),
+                            )),
                   ],
                 ),
-              ),
+              ],
             ),
 
-          // ── تدرج علوي شفاف ──
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 120,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.4),
-                    Colors.transparent,
-                  ],
+            // ── دبوس المركز ──
+            if (mapState.dropoffLocation == null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 40),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_on,
+                          color: MadarTheme.mapPickup, size: 40),
+                      Container(
+                          width: 2,
+                          height: 10,
+                          color: MadarTheme.mapPickup),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          // ── الشريط العلوي ──
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 16,
-            right: 16,
-            child: _buildTopBar(),
-          ),
-
-          // ── زر موقعي ──
-          Positioned(
-            right: 16,
-            bottom: 300,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  MadarTheme.shadow(blur: 10),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: _goToMyLocation,
-                  child: const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Icon(Icons.my_location,
-                        color: MadarTheme.primary, size: 22),
+            // ── تدرج علوي شفاف ──
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 120,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.3),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
               ),
             ),
-          ),
 
-          // ── الشريط السفلي ──
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildBottomSheet(tripState, mapState),
-          ),
-        ],
+            // ── الشريط العلوي ──
+            Positioned(
+              top: MediaQuery.of(scaffoldContext).padding.top + 8,
+              left: 16,
+              right: 16,
+              child: _buildTopBar(scaffoldContext),
+            ),
+
+            // ── زر موقعي ──
+            Positioned(
+              right: 16,
+              bottom: 300,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    MadarTheme.shadow(blur: 10),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _goToMyLocation,
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Icon(Icons.my_location,
+                          color: MadarTheme.primary, size: 22),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ── الشريط السفلي ──
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildBottomSheet(tripState, mapState),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -231,7 +312,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ─────────────────────────────────────────────────────────────
   // الشريط العلوي
   // ─────────────────────────────────────────────────────────────
-  Widget _buildTopBar() {
+  Widget _buildTopBar(BuildContext scaffoldContext) {
     return SafeArea(
       child: Row(
         children: [
@@ -246,7 +327,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               color: Colors.transparent,
               child: InkWell(
                 customBorder: const CircleBorder(),
-                onTap: () => Scaffold.of(context).openDrawer(),
+                onTap: () => Scaffold.of(scaffoldContext).openDrawer(),
                 child: const Padding(
                   padding: EdgeInsets.all(10),
                   child: Icon(Icons.menu, color: MadarTheme.textPrimary, size: 22),
@@ -652,7 +733,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _drawerItem(
                 Icons.account_balance_wallet, 'المحفظة', () => context.go('/wallet')),
             _drawerItem(
-                Icons.history, 'سجل الرحلات', () => context.go('/history')),
+                Icons.history, 'سجل الرحلات', () => context.go('/trip-history')),
             _drawerItem(Icons.notifications, 'الإشعارات',
                 () => context.go('/notifications')),
             _drawerItem(
@@ -689,6 +770,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 // علامة موقع المستخدم مع نبضة
 // ─────────────────────────────────────────────────────────────
 class _CurrentUserMarker extends StatefulWidget {
+  const _CurrentUserMarker();
+
   @override
   State<_CurrentUserMarker> createState() => _CurrentUserMarkerState();
 }
@@ -727,8 +810,8 @@ class _CurrentUserMarkerState extends State<_CurrentUserMarker>
               child: Container(
                 width: 48 * (1 + progress * 0.8),
                 height: 48 * (1 + progress * 0.8),
-                decoration: BoxDecoration(
-                  color: MadarTheme.primary,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF4285F4), // Google Blue for GPS dot
                   shape: BoxShape.circle,
                 ),
               ),
@@ -738,16 +821,16 @@ class _CurrentUserMarkerState extends State<_CurrentUserMarker>
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: MadarTheme.primary.withOpacity(0.3),
+                color: const Color(0xFF4285F4).withOpacity(0.3),
                 shape: BoxShape.circle,
               ),
             ),
-            // النقطة الداخلية
+            // النقطة الداخلية - blue dot with white border
             Container(
               width: 12,
               height: 12,
               decoration: BoxDecoration(
-                color: MadarTheme.primary,
+                color: const Color(0xFF4285F4),
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2.5),
               ),
@@ -758,4 +841,3 @@ class _CurrentUserMarkerState extends State<_CurrentUserMarker>
     );
   }
 }
-
