@@ -1,6 +1,6 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:trippo_driver/Model/direction_model.dart';
 
 final homeScreenDriversLocationProvider = StateProvider<Direction?>((ref) {

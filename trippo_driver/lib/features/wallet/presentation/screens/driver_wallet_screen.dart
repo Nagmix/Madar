@@ -184,7 +184,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'ر.س ${(wallet?.availableBalance ?? 0).toStringAsFixed(2)}',
+            'ر.ي ${(wallet?.availableBalance ?? 0).toStringAsFixed(2)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 36,
@@ -199,13 +199,13 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
             children: [
               _buildBalanceInfoItem(
                 'قيد الانتظار',
-                'ر.س ${(wallet?.pendingBalance ?? 0).toStringAsFixed(2)}',
+                'ر.ي ${(wallet?.pendingBalance ?? 0).toStringAsFixed(2)}',
                 Icons.schedule,
               ),
               const SizedBox(width: MadarTheme.space24),
               _buildBalanceInfoItem(
                 'إجمالي الأرباح',
-                'ر.س ${(wallet?.totalEarnings ?? 0).toStringAsFixed(2)}',
+                'ر.ي ${(wallet?.totalEarnings ?? 0).toStringAsFixed(2)}',
                 Icons.trending_up,
               ),
             ],
@@ -435,7 +435,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'ر.س ${amount.toStringAsFixed(2)}',
+              'ر.ي ${amount.toStringAsFixed(2)}',
               style: TextStyle(
                 color: color,
                 fontSize: 17,
@@ -657,7 +657,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
 
             // Amount
             Text(
-              '${isCredit ? '+' : '-'}ر.س ${tx.amount.toStringAsFixed(2)}',
+              '${isCredit ? '+' : '-'}ر.ي ${tx.amount.toStringAsFixed(2)}',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: color,
@@ -760,7 +760,7 @@ class _DriverWalletScreenState extends ConsumerState<DriverWalletScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'الصافي: ر.س ${settlement.netAmount.toStringAsFixed(2)}',
+                    'الصافي: ر.ي ${settlement.netAmount.toStringAsFixed(2)}',
                     style: const TextStyle(
                       color: MadarTheme.textSecondary,
                       fontSize: 12,
@@ -937,7 +937,7 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
                     ),
                   ),
                   Text(
-                    'ر.س ${availableBalance.toStringAsFixed(2)}',
+                    'ر.ي ${availableBalance.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -966,8 +966,8 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
                   const Icon(Icons.info_outline, color: MadarTheme.warning, size: 16),
                   const SizedBox(width: 6),
                   Text(
-                    'الحد الأدنى: ر.س ${AppConstants.minimumWithdrawalAmount.toStringAsFixed(0)} • '
-                    'الحد الأقصى: ر.س ${AppConstants.maximumWithdrawalAmount.toStringAsFixed(0)}',
+                    'الحد الأدنى: ر.ي ${AppConstants.minimumWithdrawalAmount.toStringAsFixed(0)} • '
+                    'الحد الأقصى: ر.ي ${AppConstants.maximumWithdrawalAmount.toStringAsFixed(0)}',
                     style: const TextStyle(
                       color: MadarTheme.warning,
                       fontSize: 12,
@@ -1139,7 +1139,7 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
     if (amount < AppConstants.minimumWithdrawalAmount) {
       setState(() {
         _localError =
-            'الحد الأدنى للسحب ر.س ${AppConstants.minimumWithdrawalAmount.toStringAsFixed(0)}';
+            'الحد الأدنى للسحب ر.ي ${AppConstants.minimumWithdrawalAmount.toStringAsFixed(0)}';
       });
       return;
     }
@@ -1147,7 +1147,7 @@ class _DriverWithdrawSheetState extends ConsumerState<_DriverWithdrawSheet> {
     if (amount > AppConstants.maximumWithdrawalAmount) {
       setState(() {
         _localError =
-            'الحد الأقصى للسحب ر.س ${AppConstants.maximumWithdrawalAmount.toStringAsFixed(0)}';
+            'الحد الأقصى للسحب ر.ي ${AppConstants.maximumWithdrawalAmount.toStringAsFixed(0)}';
       });
       return;
     }

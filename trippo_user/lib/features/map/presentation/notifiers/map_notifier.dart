@@ -1,426 +1,149 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:trippo_shared/trippo_shared.dart';
+import 'package:trippo_shared/trippo_shared.dart' hide CreateTripRequest;
 import '../../../../core/app_providers.dart';
 
-/// Default location - Sana'a, Yemen
 const LatLng _defaultLocation = LatLng(15.3694, 44.1910);
 
-/// Map color constants
-class _MapColors {
-  static const Color mapPickup = Color(0xFF00C853);
-  static const Color mapDropoff = Color(0xFFFF1744);
-  static const Color routeLine = Color(0xFF448AFF);
-}
-
-/// Location state for the map (flutter_map version)
 class MapLocationState {
   final LatLng? pickupLocation;
   final String? pickupAddress;
   final LatLng? dropoffLocation;
   final String? dropoffAddress;
-  final List<Marker> markers;
-  final List<Polyline> polylines;
-  final List<CircleMarker> circles;
   final List<DriverModel> nearbyDrivers;
   final bool isLoading;
   final String? error;
   final LatLng? currentUserLocation;
-  final RouteResult? currentRoute;
+  final OsrmRouteResult? currentRoute;
 
   const MapLocationState({
-    this.pickupLocation,
-    this.pickupAddress,
-    this.dropoffLocation,
-    this.dropoffAddress,
-    this.markers = const [],
-    this.polylines = const [],
-    this.circles = const [],
-    this.nearbyDrivers = const [],
-    this.isLoading = false,
-    this.error,
-    this.currentUserLocation,
-    this.currentRoute,
+    this.pickupLocation, this.pickupAddress,
+    this.dropoffLocation, this.dropoffAddress,
+    this.nearbyDrivers = const [], this.isLoading = false,
+    this.error, this.currentUserLocation, this.currentRoute,
   });
 
   MapLocationState copyWith({
-    LatLng? pickupLocation,
-    String? pickupAddress,
-    LatLng? dropoffLocation,
-    String? dropoffAddress,
-    List<Marker>? markers,
-    List<Polyline>? polylines,
-    List<CircleMarker>? circles,
-    List<DriverModel>? nearbyDrivers,
-    bool? isLoading,
-    String? error,
-    LatLng? currentUserLocation,
-    RouteResult? currentRoute,
-  }) =>
-      MapLocationState(
-        pickupLocation: pickupLocation ?? this.pickupLocation,
-        pickupAddress: pickupAddress ?? this.pickupAddress,
-        dropoffLocation: dropoffLocation ?? this.dropoffLocation,
-        dropoffAddress: dropoffAddress ?? this.dropoffAddress,
-        markers: markers ?? this.markers,
-        polylines: polylines ?? this.polylines,
-        circles: circles ?? this.circles,
-        nearbyDrivers: nearbyDrivers ?? this.nearbyDrivers,
-        isLoading: isLoading ?? this.isLoading,
-        error: error,
-        currentUserLocation: currentUserLocation ?? this.currentUserLocation,
-        currentRoute: currentRoute ?? this.currentRoute,
-      );
+    LatLng? pickupLocation, String? pickupAddress,
+    LatLng? dropoffLocation, String? dropoffAddress,
+    List<DriverModel>? nearbyDrivers, bool? isLoading,
+    String? error, LatLng? currentUserLocation,
+    OsrmRouteResult? currentRoute, bool clearRoute = false,
+  }) => MapLocationState(
+    pickupLocation: pickupLocation ?? this.pickupLocation,
+    pickupAddress: pickupAddress ?? this.pickupAddress,
+    dropoffLocation: dropoffLocation ?? this.dropoffLocation,
+    dropoffAddress: dropoffAddress ?? this.dropoffAddress,
+    nearbyDrivers: nearbyDrivers ?? this.nearbyDrivers,
+    isLoading: isLoading ?? this.isLoading,
+    error: error,
+    currentUserLocation: currentUserLocation ?? this.currentUserLocation,
+    currentRoute: clearRoute ? null : (currentRoute ?? this.currentRoute),
+  );
 }
 
-/// MapService provider
-final mapServiceProvider = Provider<MapService>((ref) {
-  return MapService();
-});
+final mapServiceProvider = Provider<MapService>((ref) => MapService());
+final mapLocationProvider = StateNotifierProvider<MapLocationNotifier, MapLocationState>((ref) => MapLocationNotifier(ref));
 
-/// Map Location Provider
-final mapLocationProvider = StateNotifierProvider<MapLocationNotifier, MapLocationState>((ref) {
-  return MapLocationNotifier(ref);
-});
-
-/// Map Location Notifier - Manages map state using open-source MapService
 class MapLocationNotifier extends StateNotifier<MapLocationState> {
   final Ref _ref;
+  MapLocationNotifier(this._ref) : super(const MapLocationState()) { _initUserLocation(); }
 
-  MapLocationNotifier(this._ref) : super(const MapLocationState()) {
-    _initUserLocation();
-  }
-
-  /// Initialize user location on startup with permission handling
   Future<void> _initUserLocation() async {
     try {
-      // Check location permission
       LocationPermission permission = await Geolocator.checkPermission();
-
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          // Permission denied - fall back to Sana'a
-          state = state.copyWith(currentUserLocation: _defaultLocation);
-          await setPickupFromCurrentLocation();
-          return;
-        }
+        if (permission == LocationPermission.denied) { state = state.copyWith(currentUserLocation: _defaultLocation); await setPickupFromCurrentLocation(); return; }
       }
-
-      if (permission == LocationPermission.deniedForever) {
-        // Permission permanently denied - fall back to Sana'a
-        state = state.copyWith(currentUserLocation: _defaultLocation);
-        await setPickupFromCurrentLocation();
-        return;
-      }
-
-      // Permission granted - get actual position
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      if (permission == LocationPermission.deniedForever) { state = state.copyWith(currentUserLocation: _defaultLocation); await setPickupFromCurrentLocation(); return; }
+      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       final userLoc = LatLng(position.latitude, position.longitude);
       state = state.copyWith(currentUserLocation: userLoc);
-
-      // Auto-set pickup to current location
       await setPickupFromCurrentLocation();
-    } catch (e) {
-      // Location unavailable - fall back to Sana'a
-      state = state.copyWith(currentUserLocation: _defaultLocation);
-      await setPickupFromCurrentLocation();
-    }
+    } catch (e) { state = state.copyWith(currentUserLocation: _defaultLocation); await setPickupFromCurrentLocation(); }
   }
 
-  /// Set pickup from current location with reverse geocoding
   Future<void> setPickupFromCurrentLocation() async {
-    if (state.currentUserLocation == null) return;
-    state = state.copyWith(isLoading: true);
-
-    try {
-      final mapService = _ref.read(mapServiceProvider);
-      final result = await mapService.reverseGeocode(
-        latitude: state.currentUserLocation!.latitude,
-        longitude: state.currentUserLocation!.longitude,
-      );
-
-      state = state.copyWith(
-        pickupLocation: state.currentUserLocation,
-        pickupAddress: result.shortAddress,
-        isLoading: false,
-      );
-      _updateMarkersAndCircles();
-      _fetchNearbyDrivers();
-    } catch (e) {
-      // Still set the location even if geocoding fails
-      state = state.copyWith(
-        pickupLocation: state.currentUserLocation,
-        pickupAddress: 'الموقع الحالي',
-        isLoading: false,
-      );
-      _updateMarkersAndCircles();
-      _fetchNearbyDrivers();
-    }
-  }
-
-  /// Set pickup location from camera position
-  void setPickupLocation(LatLng location, String address) {
-    state = state.copyWith(
-      pickupLocation: location,
-      pickupAddress: address,
-    );
-    _updateMarkersAndCircles();
-    _fetchNearbyDrivers();
-  }
-
-  /// Set pickup location with reverse geocoding
-  Future<void> setPickupWithGeocode(LatLng location) async {
+    final loc = state.currentUserLocation ?? _defaultLocation;
     state = state.copyWith(isLoading: true);
     try {
-      final mapService = _ref.read(mapServiceProvider);
-      final result = await mapService.reverseGeocode(
-        latitude: location.latitude,
-        longitude: location.longitude,
-      );
-
-      state = state.copyWith(
-        pickupLocation: location,
-        pickupAddress: result.shortAddress,
-        isLoading: false,
-      );
-      _updateMarkersAndCircles();
-      _fetchNearbyDrivers();
-    } catch (e) {
-      state = state.copyWith(
-        pickupLocation: location,
-        pickupAddress: '${location.latitude.toStringAsFixed(4)}, ${location.longitude.toStringAsFixed(4)}',
-        isLoading: false,
-      );
-      _updateMarkersAndCircles();
-      _fetchNearbyDrivers();
-    }
+      final mapService = MapService();
+      final geocode = await mapService.reverseGeocode(latitude: loc.latitude, longitude: loc.longitude);
+      state = state.copyWith(pickupLocation: loc, pickupAddress: geocode.shortAddress.isNotEmpty ? geocode.shortAddress : geocode.fullAddress, isLoading: false);
+    } catch (e) { state = state.copyWith(pickupLocation: loc, pickupAddress: 'موقعي الحالي', isLoading: false); }
   }
 
-  /// Set dropoff location
-  void setDropoffLocation(LatLng location, String address) {
-    state = state.copyWith(
-      dropoffLocation: location,
-      dropoffAddress: address,
-    );
-    _updateMarkersAndCircles();
-    _fetchRoute();
-  }
-
-  /// Set dropoff location with reverse geocoding
-  Future<void> setDropoffWithGeocode(LatLng location, {String? address}) async {
-    if (address != null) {
-      state = state.copyWith(
-        dropoffLocation: location,
-        dropoffAddress: address,
-      );
-      _updateMarkersAndCircles();
-      _fetchRoute();
-      return;
-    }
-
+  Future<void> setPickupWithGeocode(LatLng position) async {
     state = state.copyWith(isLoading: true);
     try {
-      final mapService = _ref.read(mapServiceProvider);
-      final result = await mapService.reverseGeocode(
-        latitude: location.latitude,
-        longitude: location.longitude,
-      );
-
-      state = state.copyWith(
-        dropoffLocation: location,
-        dropoffAddress: result.shortAddress,
-        isLoading: false,
-      );
-      _updateMarkersAndCircles();
-      _fetchRoute();
-    } catch (e) {
-      state = state.copyWith(
-        dropoffLocation: location,
-        dropoffAddress: '${location.latitude.toStringAsFixed(4)}, ${location.longitude.toStringAsFixed(4)}',
-        isLoading: false,
-      );
-      _updateMarkersAndCircles();
-      _fetchRoute();
-    }
+      final mapService = MapService();
+      final geocode = await mapService.reverseGeocode(latitude: position.latitude, longitude: position.longitude);
+      state = state.copyWith(pickupLocation: position, pickupAddress: geocode.shortAddress.isNotEmpty ? geocode.shortAddress : geocode.fullAddress, isLoading: false);
+    } catch (e) { state = state.copyWith(pickupLocation: position, pickupAddress: '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}', isLoading: false); }
   }
 
-  /// Clear dropoff location
-  void clearDropoff() {
-    state = state.copyWith(
-      dropoffLocation: null,
-      dropoffAddress: null,
-      polylines: [],
-      currentRoute: null,
-    );
-    _updateMarkersAndCircles();
+  Future<void> setPickupLocation(LatLng position, String address) async {
+    state = state.copyWith(pickupLocation: position, pickupAddress: address, isLoading: false);
   }
 
-  /// Clear all
-  void clearAll() {
-    state = const MapLocationState();
+  Future<void> setDropoffWithGeocode(LatLng position) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final mapService = MapService();
+      final geocode = await mapService.reverseGeocode(latitude: position.latitude, longitude: position.longitude);
+      state = state.copyWith(dropoffLocation: position, dropoffAddress: geocode.shortAddress.isNotEmpty ? geocode.shortAddress : geocode.fullAddress, isLoading: false);
+    } catch (e) { state = state.copyWith(dropoffLocation: position, dropoffAddress: '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}', isLoading: false); }
   }
 
-  /// Update user location in real-time
-  void updateUserLocation(LatLng location) {
-    state = state.copyWith(currentUserLocation: location);
+  Future<void> setDropoffLocation(LatLng position, String address) async {
+    state = state.copyWith(dropoffLocation: position, dropoffAddress: address, isLoading: false);
   }
 
-  /// Update driver marker position (for real-time tracking)
-  void updateDriverMarker(String driverId, LatLng position, {double? bearing}) {
-    _updateMarkersAndCircles();
-  }
+  void updateUserLocation(LatLng location) { state = state.copyWith(currentUserLocation: location); }
 
-  void _updateMarkersAndCircles() {
-    final markers = <Marker>[];
-    final circles = <CircleMarker>[];
-
-    // Pickup marker
-    if (state.pickupLocation != null) {
-      markers.add(Marker(
-        point: state.pickupLocation!,
-        width: 40,
-        height: 40,
-        child: const Icon(Icons.location_on, color: _MapColors.mapPickup, size: 40),
-      ));
-
-      // Pickup radius circle
-      circles.add(CircleMarker(
-        point: state.pickupLocation!,
-        radius: 500,
-        color: _MapColors.mapPickup.withOpacity(0.1),
-        borderColor: _MapColors.mapPickup,
-        borderStrokeWidth: 1,
-      ));
-    }
-
-    // Dropoff marker
-    if (state.dropoffLocation != null) {
-      markers.add(Marker(
-        point: state.dropoffLocation!,
-        width: 40,
-        height: 40,
-        child: const Icon(Icons.location_on, color: _MapColors.mapDropoff, size: 40),
-      ));
-    }
-
-    // Nearby drivers markers with taxi icon
-    for (final driver in state.nearbyDrivers) {
-      if (driver.currentLocation != null) {
-        markers.add(Marker(
-          point: LatLng(driver.currentLocation!.latitude, driver.currentLocation!.longitude),
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFB300).withOpacity(0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.local_taxi,
-              color: Color(0xFFFFB300),
-              size: 24,
-            ),
-          ),
-        ));
-      }
-    }
-
-    state = state.copyWith(markers: markers, circles: circles);
-  }
-
-  /// Fetch route between pickup and dropoff using OSRM
-  Future<void> _fetchRoute() async {
+  Future<void> calculateRoute() async {
     if (state.pickupLocation == null || state.dropoffLocation == null) return;
-
     state = state.copyWith(isLoading: true);
-
     try {
-      final mapService = _ref.read(mapServiceProvider);
-      final routeResult = await mapService.getRoute(
-        origin: state.pickupLocation!,
-        destination: state.dropoffLocation!,
-      );
-
-      // Create polyline from route points
-      final routePolyline = Polyline(
-        points: routeResult.polylinePoints,
-        color: _MapColors.routeLine,
-        strokeWidth: 5.0,
-        borderStrokeWidth: 2.0,
-        borderColor: Colors.blue.shade900,
-      );
-
-      state = state.copyWith(
-        polylines: [routePolyline],
-        currentRoute: routeResult,
-        isLoading: false,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        error: 'Failed to fetch route: $e',
-        isLoading: false,
-      );
-    }
+      final mapService = MapService();
+      final route = await mapService.getRoute(origin: state.pickupLocation!, destination: state.dropoffLocation!);
+      state = state.copyWith(currentRoute: route, isLoading: false);
+    } catch (e) { debugPrint('Route error: $e'); state = state.copyWith(isLoading: false, error: e.toString()); }
   }
 
-  /// Fetch nearby drivers from backend
-  Future<void> _fetchNearbyDrivers() async {
-    if (state.pickupLocation == null) return;
-
+  Future<void> fetchNearbyDrivers(LatLng position) async {
     try {
       final apiService = _ref.read(apiServiceProvider);
-      final response = await apiService.get(
-        ApiConstants.nearbyDrivers,
-        queryParameters: {
-          'latitude': state.pickupLocation!.latitude,
-          'longitude': state.pickupLocation!.longitude,
-          'radius': 5000, // 5km radius
-        },
-      );
-
-      final data = response.data;
-      if (data is List) {
-        final drivers = data
-            .map((e) => DriverModel.fromJson(e as Map<String, dynamic>))
-            .toList();
+      final response = await apiService.get('${ApiConstants.dispatchNearbyDrivers}?latitude=${position.latitude}&longitude=${position.longitude}&radiusKm=10');
+      if (response.data is Map<String, dynamic>) {
+        final data = response.data as Map<String, dynamic>;
+        final drivers = <DriverModel>[];
+        final list = data['drivers'] as List<dynamic>? ?? data['data'] as List<dynamic>? ?? [];
+        for (final d in list) { if (d is Map<String, dynamic>) { try { drivers.add(DriverModel.fromJson(d)); } catch (_) {} } }
         state = state.copyWith(nearbyDrivers: drivers);
-        _updateMarkersAndCircles();
       }
-    } catch (e) {
-      // Silently fail - drivers will not be shown
-    }
+    } catch (e) { debugPrint('Nearby drivers error: $e'); }
   }
 
-  /// Search places using Nominatim
-  Future<List<PlaceResult>> searchPlaces(String query, {LatLng? nearPosition}) async {
+  Future<List<PlaceResult>> searchPlaces(String query) async {
     try {
-      final mapService = _ref.read(mapServiceProvider);
-      return mapService.searchPlace(query, nearPosition: nearPosition ?? state.currentUserLocation);
-    } catch (e) {
-      return [];
-    }
+      final mapService = MapService();
+      final results = await mapService.searchPlaces(query, nearPosition: state.currentUserLocation);
+      return results.map((r) => PlaceResult(shortAddress: r.shortAddress, fullAddress: r.fullAddress, location: r.location)).toList();
+    } catch (e) { debugPrint('Search error: $e'); return []; }
   }
 
-  /// Get estimated fare for current route
-  double? estimateFare({
-    required double baseFare,
-    required double perKmRate,
-    required double perMinRate,
-    double? surgeMultiplier,
-  }) {
-    if (state.currentRoute == null) return null;
+  void clearDropoff() { state = state.copyWith(dropoffLocation: null, dropoffAddress: null, clearRoute: true); }
+  void clearAll() { state = const MapLocationState(); }
+}
 
-    final multiplier = surgeMultiplier ?? 1.0;
-    final distanceKm = state.currentRoute!.distanceKm;
-    final durationMin = state.currentRoute!.durationMinutes;
-
-    return (baseFare + (distanceKm * perKmRate) + (durationMin * perMinRate)) * multiplier;
-  }
+class PlaceResult {
+  final String shortAddress;
+  final String fullAddress;
+  final LatLng location;
+  const PlaceResult({required this.shortAddress, required this.fullAddress, required this.location});
 }

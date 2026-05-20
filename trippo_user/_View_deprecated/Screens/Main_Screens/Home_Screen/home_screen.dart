@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:trippo_user/Container/utils/firebase_messaging.dart';
 import 'package:trippo_user/Container/utils/set_blackmap.dart';
 import 'package:trippo_user/View/Routes/routes.dart';

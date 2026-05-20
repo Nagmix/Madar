@@ -278,29 +278,34 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
 
   /// Go offline - POST /drivers/offline
   /// Stops GPS tracking service and leaves dispatch room
+  /// IMPORTANT: Stop timers/streams BEFORE calling API to prevent race condition
+  /// where location updates hit the server after it sets status=OFFLINE (400 error)
   Future<void> goOffline() async {
     if (!state.isOnline) return;
 
     state = state.copyWith(isLoading: true, error: null);
 
+    // Stop ALL location sources FIRST to prevent race condition
+    // where updates hit server after status changes to OFFLINE
+    _stopPositionStream();
+    _stopLocationUpdateTimer();
+    _stopOnlineDurationTimer();
+
+    // Mark as offline locally to prevent any remaining in-flight updates
+    state = state.copyWith(
+      isOnline: false,
+      isTrackingLocation: false,
+    );
+
     try {
       final apiClient = _ref.read(nestjsApiClientProvider);
       await apiClient.setDriverOffline();
-
-      // Stop position stream
-      _stopPositionStream();
 
       // Stop dispatch listening
       final dispatchNotifier = _ref.read(dispatchProvider.notifier);
       dispatchNotifier.stopListening();
 
-      // Stop timers
-      _stopLocationUpdateTimer();
-      _stopOnlineDurationTimer();
-
       state = state.copyWith(
-        isOnline: false,
-        isTrackingLocation: false,
         isLoading: false,
         currentLocation: null,
         heading: 0,
@@ -308,9 +313,15 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
         onlineDuration: null,
       );
     } catch (e) {
+      // Even if API call fails, keep local state as offline
+      // to prevent further location updates
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
+        currentLocation: null,
+        heading: 0,
+        wentOnlineAt: null,
+        onlineDuration: null,
       );
     }
   }

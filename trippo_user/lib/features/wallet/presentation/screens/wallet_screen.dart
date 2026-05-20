@@ -81,7 +81,7 @@ class WalletScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           MadarPriceTag(
             amount: wallet?.availableBalance ?? 0,
-            currency: 'ر.س',
+            currency: 'ر.ي',
             fontSize: 36,
             color: Colors.white,
           ),
@@ -93,7 +93,7 @@ class WalletScreen extends ConsumerWidget {
               Expanded(
                 child: _buildBalanceInfo(
                   'قيد الانتظار',
-                  '${(wallet?.pendingBalance ?? 0).toStringAsFixed(2)} ر.س',
+                  '${(wallet?.pendingBalance ?? 0).toStringAsFixed(2)} ر.ي',
                 ),
               ),
               Container(
@@ -104,7 +104,7 @@ class WalletScreen extends ConsumerWidget {
               Expanded(
                 child: _buildBalanceInfo(
                   'إجمالي الأرباح',
-                  '${(wallet?.totalEarnings ?? 0).toStringAsFixed(2)} ر.س',
+                  '${(wallet?.totalEarnings ?? 0).toStringAsFixed(2)} ر.ي',
                 ),
               ),
             ],
@@ -314,7 +314,7 @@ class WalletScreen extends ConsumerWidget {
               ),
             ),
             Text(
-              '${isCredit ? '+' : '-'}${tx.amount.toStringAsFixed(2)} ر.س',
+              '${isCredit ? '+' : '-'}${tx.amount.toStringAsFixed(2)} ر.ي',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontFamily: MadarTheme.fontFamily,
@@ -346,7 +346,7 @@ class WalletScreen extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.check_circle, color: MadarTheme.success),
                 title: Text('الفترة: ${s.period}'),
-                subtitle: Text('الصافي: ${s.netAmount.toStringAsFixed(2)} ر.س'),
+                subtitle: Text('الصافي: ${s.netAmount.toStringAsFixed(2)} ر.ي'),
                 trailing: Text(s.status.name),
               ),
             ),
@@ -450,7 +450,7 @@ class _WithdrawSheetState extends ConsumerState<_WithdrawSheet> {
                   ),
                 ),
                 Text(
-                  '${availableBalance.toStringAsFixed(2)} ر.س',
+                  '${availableBalance.toStringAsFixed(2)} ر.ي',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -468,7 +468,7 @@ class _WithdrawSheetState extends ConsumerState<_WithdrawSheet> {
                 const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: 'المبلغ',
-              prefixText: 'ر.س ',
+              prefixText: 'ر.ي ',
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(MadarTheme.radiusMd)),
             ),

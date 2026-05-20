@@ -6,6 +6,18 @@ part of 'driver_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+/// Decode driver status from either uppercase (Prisma) or lowercase (expected) format
+DriverStatus _decodeDriverStatus(dynamic value) {
+  if (value == null) return DriverStatus.offline;
+  final s = value.toString().toLowerCase();
+  return switch (s) {
+    'online' => DriverStatus.online,
+    'busy' => DriverStatus.busy,
+    'suspended' => DriverStatus.suspended,
+    _ => DriverStatus.offline,
+  };
+}
+
 _$DriverModelImpl _$$DriverModelImplFromJson(Map<String, dynamic> json) =>
     _$DriverModelImpl(
       id: json['id'] as String,
@@ -14,9 +26,8 @@ _$DriverModelImpl _$$DriverModelImplFromJson(Map<String, dynamic> json) =>
       phone: json['phone'] as String?,
       countryCode: json['countryCode'] as String?,
       profileImageUrl: json['profileImageUrl'] as String?,
-      vehicle: VehicleModel.fromJson(json['vehicle'] as Map<String, dynamic>),
-      status: $enumDecodeNullable(_$DriverStatusEnumMap, json['status']) ??
-          DriverStatus.offline,
+      vehicle: json['vehicle'] == null ? const VehicleModel(id: '', name: '', plateNumber: '', type: VehicleType.sedan, seats: 4) : VehicleModel.fromJson(json['vehicle'] as Map<String, dynamic>),
+      status: _decodeDriverStatus(json['status']),
       currentLocation: json['currentLocation'] == null
           ? null
           : LocationModel.fromJson(

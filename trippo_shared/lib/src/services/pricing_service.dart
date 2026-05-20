@@ -146,7 +146,7 @@ class PricingService {
     final symbols = {
       'YER': 'ر.ي',
       'USD': '\$',
-      'SAR': 'ر.س',
+      'YER': 'ر.ي',
       'AED': 'د.إ',
       'PKR': '₨',
       'EUR': '€',

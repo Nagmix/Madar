@@ -44,17 +44,36 @@ export class AuthService {
       console.log('Could not create wallet:', e.message);
     }
 
-    // If registering as driver, create driver profile
+    // If registering as driver, create driver profile with auto-verified docs and default vehicle
     if (userRole === 'DRIVER') {
       try {
-        await this.prisma.driver.create({
+        const driver = await this.prisma.driver.create({
           data: {
             userId: user.id,
             status: 'OFFLINE',
             isAvailable: true,
-            isDocumentsVerified: false,
+            isDocumentsVerified: true, // Auto-verify for development
           },
         });
+
+        // Create default approved vehicle for development
+        try {
+          await this.prisma.vehicle.create({
+            data: {
+              driverId: driver.id,
+              name: 'Default Vehicle',
+              plateNumber: 'TEMP-' + user.id.substring(0, 6).toUpperCase(),
+              type: 'SEDAN',
+              color: 'White',
+              model: 'Standard',
+              year: '2024',
+              seats: 4,
+              isApproved: true, // Auto-approve for development
+            },
+          });
+        } catch (vehicleErr) {
+          console.log('Could not create default vehicle:', vehicleErr.message);
+        }
       } catch (e) {
         console.log('Could not create driver profile:', e.message);
       }

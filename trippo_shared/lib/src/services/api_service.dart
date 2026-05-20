@@ -169,7 +169,8 @@ class ApiService {
         final data = e.response?.data;
         String message = 'An error occurred';
         if (data is Map<String, dynamic>) {
-          message = data['message'] ?? data['error'] ?? message;
+          final rawMsg = data['message'] ?? data['error'] ?? message;
+          message = rawMsg is List ? rawMsg.join('. ') : rawMsg.toString();
         }
         return AppException(
           type: _mapStatusCode(statusCode),
@@ -333,7 +334,7 @@ class ApiResponse {
       success: (response.statusCode ?? 0) >= 200 &&
           (response.statusCode ?? 0) < 300,
       message: responseData is Map<String, dynamic>
-          ? responseData['message']
+          ? (() { final m = responseData['message']; return m is List ? m.join('. ') : m?.toString(); })()
           : null,
     );
   }

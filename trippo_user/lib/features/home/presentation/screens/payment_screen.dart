@@ -246,7 +246,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           const SizedBox(height: MadarTheme.space24),
           MadarGradientButton(
             label:
-                'ادفع الآن ${fare != null ? "${fare.totalFare.toStringAsFixed(2)} ر.س" : ""}',
+                'ادفع الآن ${fare != null ? "${fare.totalFare.toStringAsFixed(2)} ر.ي" : ""}',
             onPressed: _isPaying ? null : _processPayment,
             isLoading: _isPaying,
             gradientColors: const [MadarTheme.primary, MadarTheme.primaryDark],
@@ -519,7 +519,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             ),
           ),
           Text(
-            '${isDiscount ? "-" : ""}${amount.abs().toStringAsFixed(2)} ر.س',
+            '${isDiscount ? "-" : ""}${amount.abs().toStringAsFixed(2)} ر.ي',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,

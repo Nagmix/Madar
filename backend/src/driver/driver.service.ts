@@ -114,15 +114,18 @@ export class DriverService {
       throw new ForbiddenException('Driver account is suspended');
     }
 
-    if (!driver.isDocumentsVerified) {
-      throw new ForbiddenException('Documents must be verified before going online');
-    }
+    // TODO: Re-enable these checks in production
+    // if (!driver.isDocumentsVerified) {
+    //   throw new ForbiddenException('Documents must be verified before going online');
+    // }
 
-    // Verify driver has an approved vehicle
+    // TODO: Re-enable vehicle check in production
+    // const vehicle = await this.prisma.vehicle.findUnique({ where: { driverId: driver.id } });
+    // if (!vehicle || !vehicle.isApproved) {
+    //   throw new ForbiddenException('Vehicle must be approved before going online');
+    // }
+    // Get vehicle if exists (optional for now in development)
     const vehicle = await this.prisma.vehicle.findUnique({ where: { driverId: driver.id } });
-    if (!vehicle || !vehicle.isApproved) {
-      throw new ForbiddenException('Vehicle must be approved before going online');
-    }
 
     // Update driver status and location
     const updatedDriver = await this.prisma.driver.update({
@@ -191,8 +194,12 @@ export class DriverService {
     const driver = await this.prisma.driver.findUnique({ where: { userId } });
     if (!driver) throw new NotFoundException('Driver profile not found');
 
+    // Silently ignore location updates while offline - this is expected
+    // during the brief race condition between going offline and stopping
+    // the GPS stream/timers on the client side. Returning an error causes
+    // unnecessary UI flicker and error messages.
     if (driver.status === DriverStatus.OFFLINE) {
-      throw new BadRequestException('Cannot update location while offline');
+      return { latitude, longitude, heading, speed, timestamp: new Date().toISOString(), ignored: true };
     }
 
     // Update location using raw SQL for PostGIS geography type

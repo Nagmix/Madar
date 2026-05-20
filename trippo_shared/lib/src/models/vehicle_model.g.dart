@@ -6,12 +6,26 @@ part of 'vehicle_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+/// Decode vehicle type from either uppercase (Prisma) or lowercase (expected) format
+VehicleType _decodeVehicleType(dynamic value) {
+  if (value == null) return VehicleType.sedan;
+  final s = value.toString().toLowerCase();
+  return switch (s) {
+    'motorcycle' => VehicleType.motorcycle,
+    'sedan' => VehicleType.sedan,
+    'suv' => VehicleType.suv,
+    'van' => VehicleType.van,
+    'luxury' => VehicleType.luxury,
+    _ => VehicleType.sedan,
+  };
+}
+
 _$VehicleModelImpl _$$VehicleModelImplFromJson(Map<String, dynamic> json) =>
     _$VehicleModelImpl(
       id: json['id'] as String,
       name: json['name'] as String,
       plateNumber: json['plateNumber'] as String,
-      type: $enumDecode(_$VehicleTypeEnumMap, json['type']),
+      type: _decodeVehicleType(json['type']),
       seats: (json['seats'] as num).toInt(),
       color: json['color'] as String?,
       model: json['model'] as String?,
@@ -45,7 +59,7 @@ const _$VehicleTypeEnumMap = {
 _$VehicleTypeInfoImpl _$$VehicleTypeInfoImplFromJson(
         Map<String, dynamic> json) =>
     _$VehicleTypeInfoImpl(
-      type: $enumDecode(_$VehicleTypeEnumMap, json['type']),
+      type: _decodeVehicleType(json['type']),
       displayName: json['displayName'] as String,
       description: json['description'] as String,
       baseFare: (json['baseFare'] as num).toDouble(),

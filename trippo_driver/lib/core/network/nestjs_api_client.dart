@@ -167,9 +167,59 @@ class NestjsApiClient {
 
   /// Get driver profile - NestJS Driver Module
   /// GET /drivers/profile
+  /// The API returns { id, userId, status, user: {...}, vehicle: {...} }
+  /// But DriverModel expects { id, email, name, vehicle, ... } at top level
+  /// So we flatten the response before parsing.
   Future<DriverModel> getDriverProfile() async {
     final response = await _dio.get(ApiConstants.driverProfile);
-    return DriverModel.fromJson(response.data);
+    final data = _flattenDriverResponse(response.data);
+    return DriverModel.fromJson(data);
+  }
+
+  /// Flatten the nested API response to match DriverModel format
+  /// API: { id, userId, status, user: {name, email, phone, profileImageUrl, ...}, vehicle, ... }
+  /// Model: { id, email, name, phone, profileImageUrl, vehicle, ... }
+  static Map<String, dynamic> _flattenDriverResponse(Map<String, dynamic> apiData) {
+    final user = apiData['user'] as Map<String, dynamic>?;
+    final vehicle = apiData['vehicle'];
+    
+    return {
+      'id': apiData['id'] ?? apiData['userId'] ?? '',
+      'email': user?['email'] ?? apiData['email'] ?? '',
+      'name': user?['name'] ?? apiData['name'] ?? '',
+      'phone': user?['phone'] ?? apiData['phone'],
+      'countryCode': user?['countryCode'] ?? apiData['countryCode'],
+      'profileImageUrl': user?['profileImageUrl'] ?? apiData['profileImageUrl'],
+      'vehicle': vehicle ?? {'id': '', 'name': '', 'plateNumber': '', 'type': 'sedan', 'seats': 4},
+      'status': _mapDriverStatus(apiData['status']),
+      'currentLocation': apiData['currentLocation'],
+      'lastKnownLocation': apiData['lastKnownLocation'],
+      'averageRating': (apiData['averageRating'] as num?)?.toDouble() ?? (user?['averageRating'] as num?)?.toDouble() ?? 0.0,
+      'totalTrips': (apiData['totalTrips'] as num?)?.toInt() ?? 0,
+      'completedTrips': (apiData['completedTrips'] as num?)?.toInt() ?? 0,
+      'cancelledTrips': (apiData['cancelledTrips'] as num?)?.toInt() ?? 0,
+      'acceptanceRate': (apiData['acceptanceRate'] as num?)?.toDouble() ?? 0.0,
+      'cancellationRate': (apiData['cancellationRate'] as num?)?.toDouble() ?? 0.0,
+      'isEmailVerified': apiData['isEmailVerified'] as bool? ?? user?['isEmailVerified'] as bool? ?? false,
+      'isPhoneVerified': apiData['isPhoneVerified'] as bool? ?? user?['isPhoneVerified'] as bool? ?? false,
+      'isDocumentsVerified': apiData['isDocumentsVerified'] as bool? ?? false,
+      'isBanned': apiData['isBanned'] as bool? ?? user?['isBanned'] as bool? ?? false,
+      'isActive': apiData['isActive'] as bool? ?? user?['isActive'] as bool? ?? false,
+      'walletBalance': (apiData['walletBalance'] as num?)?.toDouble() ?? 0.0,
+      'totalEarnings': (apiData['totalEarnings'] as num?)?.toDouble() ?? 0.0,
+      'lastOnlineAt': apiData['lastOnlineAt'],
+      'createdAt': apiData['createdAt'],
+      'updatedAt': apiData['updatedAt'],
+    };
+  }
+  
+  /// Map driver status from API (uppercase) to model format (lowercase)
+  static String _mapDriverStatus(dynamic status) {
+    if (status == null) return 'offline';
+    final s = status.toString().toLowerCase();
+    // API may return OFFLINE, ONLINE, BUSY, SUSPENDED (Prisma enum)
+    // Model expects: offline, online, busy, suspended
+    return s;
   }
 
   /// Set driver online - NestJS Driver Module
@@ -694,12 +744,25 @@ class _LoggingInterceptor extends Interceptor {
 
 /// Maps NestJS error responses to app-level exceptions
 /// NestJS returns errors in format: { statusCode, message, error }
+/// IMPORTANT: NestJS validation pipe returns 'message' as List<String>, not String
+/// This was causing: type 'List<dynamic>' is not a subtype of type 'String?' in type cast
 class _ErrorMappingInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.data is Map<String, dynamic>) {
       final data = err.response!.data as Map<String, dynamic>;
-      final message = data['message'] as String? ?? 'An error occurred';
+      
+      // Safely extract message - NestJS can return message as String OR List<String>
+      final rawMessage = data['message'];
+      String message;
+      if (rawMessage is String) {
+        message = rawMessage;
+      } else if (rawMessage is List) {
+        message = rawMessage.join('; ');
+      } else {
+        message = 'An error occurred';
+      }
+      
       final statusCode = data['statusCode'] as int? ?? err.response?.statusCode;
       
       // NestJS validation errors format
@@ -707,9 +770,11 @@ class _ErrorMappingInterceptor extends Interceptor {
         final fieldErrors = <String, String>{};
         final errors = data['errors'] as List<dynamic>;
         for (final error in errors) {
-          final field = error['field'] as String? ?? 'unknown';
-          final msg = error['message'] as String? ?? 'Invalid value';
-          fieldErrors[field] = msg;
+          if (error is Map<String, dynamic>) {
+            final field = error['field'] as String? ?? 'unknown';
+            final msg = error['message'] as String? ?? 'Invalid value';
+            fieldErrors[field] = msg;
+          }
         }
         handler.next(DioException(
           requestOptions: err.requestOptions,

@@ -27,9 +27,10 @@ export 'src/services/offline_service.dart';
 export 'src/services/wallet_service.dart' hide Settlement;
 export 'src/services/dispatch_scoring_service.dart' hide DriverScore;
 
-// Map Services (Open-Source)
+// Map Services (MapTiler for geocoding/search, OSRM for routing)
 export 'src/services/map/map_service.dart';
 export 'src/services/map/osrm_routing_service.dart';
+export 'src/services/map/maptiler_geocoding_service.dart';
 export 'src/services/map/nominatim_service.dart';
 export 'src/services/map/route_parser.dart';
 export 'src/services/map/tile_provider.dart';

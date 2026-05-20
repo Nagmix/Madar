@@ -39,9 +39,9 @@ class AppConstants {
   static const double defaultRating = 5.0;
   static const int ratingDisplayDecimals = 1;
   
-  // Pricing defaults
-  static const double defaultBaseFare = 500.0;
-  static const double defaultPerKmRate = 150.0;
+  // Pricing defaults - Updated per user requirements
+  static const double defaultBaseFare = 500.0;        // سعر الافتتاح
+  static const double defaultPerKmRate = 200.0;        // 200 ريال يمني لكل كم
   static const double defaultPerMinuteRate = 25.0;
   static const double defaultMinimumFare = 600.0;
   static const double defaultCancellationFee = 200.0;
@@ -75,4 +75,3 @@ class AppConstants {
   // Notification channels
   static const String channelRideUpdates = 'ride_updates';
 }
-

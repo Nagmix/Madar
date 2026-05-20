@@ -36,9 +36,9 @@ class MadarUserApp extends ConsumerWidget {
       themeMode: ThemeMode.system,
       routerConfig: router,
       // دعم اللغة العربية كافتراضية
-      locale: const Locale('ar', 'SA'),
+      locale: const Locale('ar', 'YE'),
       supportedLocales: const [
-        Locale('ar', 'SA'),
+        Locale('ar', 'YE'),
         Locale('en', 'US'),
       ],
       localizationsDelegates: const [

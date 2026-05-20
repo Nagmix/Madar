@@ -129,7 +129,7 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen>
                 const MadarPriceTag(
                   amount: 85.50,
                   fontSize: 40,
-                  currency: 'ر.س',
+                  currency: 'ر.ي',
                   color: Colors.white,
                 ),
                 const SizedBox(height: MadarTheme.space20),
@@ -138,7 +138,7 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen>
                   children: [
                     _buildStatColumn('الرحلات', '8', Icons.route, Colors.white54),
                     _buildStatColumn('الساعات', '5.2', Icons.schedule, Colors.white54),
-                    _buildStatColumn('متوسط/رحلة', 'ر.س 10.69', Icons.trending_up, Colors.white54),
+                    _buildStatColumn('متوسط/رحلة', 'ر.ي 10.69', Icons.trending_up, Colors.white54),
                   ],
                 ),
               ],
@@ -166,32 +166,32 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen>
                 _buildBreakdownRow(
                   Icons.attach_money,
                   'أجرة الرحلات',
-                  'ر.س 106.88',
+                  'ر.ي 106.88',
                   isPositive: true,
                 ),
                 _buildBreakdownRow(
                   Icons.percent,
                   'العمولة (20%)',
-                  '-ر.س 21.38',
+                  '-ر.ي 21.38',
                   isPositive: false,
                 ),
                 _buildBreakdownRow(
                   Icons.card_giftcard,
                   'الحوافز',
-                  '+ر.س 5.00',
+                  '+ر.ي 5.00',
                   isPositive: true,
                 ),
                 _buildBreakdownRow(
                   Icons.access_time,
                   'رسوم الانتظار',
-                  '+ر.س 2.50',
+                  '+ر.ي 2.50',
                   isPositive: true,
                 ),
                 const Divider(height: MadarTheme.space24),
                 _buildBreakdownRow(
                   Icons.account_balance_wallet,
                   'صافي الأرباح',
-                  'ر.س 85.50',
+                  'ر.ي 85.50',
                   isPositive: true,
                   isBold: true,
                 ),
@@ -278,7 +278,7 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen>
                 ),
                 const SizedBox(height: MadarTheme.space12),
                 const Text(
-                  'أكمل 10 رحلات اليوم للحصول على مكافأة ر.س 15',
+                  'أكمل 10 رحلات اليوم للحصول على مكافأة ر.ي 15',
                   style: TextStyle(
                     fontFamily: MadarTheme.fontFamily,
                     color: MadarTheme.textPrimary,

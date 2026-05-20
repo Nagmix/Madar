@@ -3,7 +3,7 @@ import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:trippo_user/Container/utils/keys.dart';
 import 'package:trippo_user/Model/direction_polyline_details_model.dart';
 import 'package:trippo_user/View/Screens/Main_Screens/Home_Screen/home_providers.dart';

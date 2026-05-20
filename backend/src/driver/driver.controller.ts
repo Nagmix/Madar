@@ -51,6 +51,14 @@ class SetOnlineDto {
 
   @IsNumber()
   longitude: number;
+
+  @IsOptional()
+  @IsNumber()
+  heading?: number;
+
+  @IsOptional()
+  @IsNumber()
+  accuracy?: number;
 }
 
 class UpdateLocationDto {
@@ -67,6 +75,10 @@ class UpdateLocationDto {
   @IsOptional()
   @IsNumber()
   speed?: number;
+
+  @IsOptional()
+  @IsNumber()
+  accuracy?: number;
 }
 
 @ApiTags('drivers')

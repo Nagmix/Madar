@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:trippo_user/View/Routes/routes.dart';
 import 'package:trippo_user/View/Screens/Auth_Screens/Login_Screen/login_screen.dart';
 import 'package:trippo_user/View/Screens/Auth_Screens/Register_Screen/register_screen.dart';
