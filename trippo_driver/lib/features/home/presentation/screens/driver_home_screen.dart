@@ -267,19 +267,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     if (homeState.isOnline) {
       await ref.read(driverHomeProvider.notifier).goOffline();
     } else {
-      try {
-        await ref.read(driverHomeProvider.notifier).goOnline();
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('فشل في بدء التشغيل: $e'),
-              backgroundColor: MadarTheme.error,
-              duration: const Duration(seconds: 5),
-            ),
-          );
-        }
-      }
+      // goOnline() handles errors internally and sets state.error
+      // The error will be shown via the listener in build()
+      await ref.read(driverHomeProvider.notifier).goOnline();
     }
   }
 

@@ -1,4 +1,4 @@
-package dev.hyderali.trippo_user
+package com.madar.user
 
 import io.flutter.embedding.android.FlutterActivity
 

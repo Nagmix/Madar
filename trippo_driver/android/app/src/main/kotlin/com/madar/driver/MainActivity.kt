@@ -1,4 +1,4 @@
-package dev.hyderali.trippo_driver
+package com.madar.driver
 
 import io.flutter.embedding.android.FlutterActivity
 

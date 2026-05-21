@@ -244,6 +244,22 @@ class NestjsApiClient {
     await _dio.post(ApiConstants.driverOffline);
   }
 
+  /// Create or update driver profile - NestJS Driver Module
+  /// POST /drivers/profile
+  /// Used when going online fails with 404 (profile not found)
+  Future<void> createDriverProfile({
+    required bool isAvailable,
+    Map<String, dynamic>? vehicle,
+  }) async {
+    final data = <String, dynamic>{
+      'isAvailable': isAvailable,
+    };
+    if (vehicle != null) {
+      data['vehicle'] = vehicle;
+    }
+    await _dio.post(ApiConstants.driverProfile, data: data);
+  }
+
   /// Update driver location - NestJS Driver Module (via Redis + Socket.IO)
   /// POST /drivers/location
   Future<void> updateDriverLocation({

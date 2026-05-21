@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.hyderali.trippo_driver"
+    namespace = "com.madar.driver"
     compileSdk = 36
 
     compileOptions {
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.hyderali.trippo_driver"
+        applicationId = "com.madar.driver"
         minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = flutter.versionCode

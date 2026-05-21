@@ -1,4 +1,6 @@
+
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -137,8 +139,6 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      // Could open app settings here, but we return false
-      // and let the UI handle it
       return false;
     }
     return true;
@@ -159,8 +159,62 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
     }
   }
 
+  /// Extract user-friendly Arabic error message from DioException
+  String _extractErrorMessage(dynamic error) {
+    if (error is DioException) {
+      final statusCode = error.response?.statusCode;
+      final data = error.response?.data;
+      
+      // Extract message from response body
+      String? serverMessage;
+      if (data is Map<String, dynamic>) {
+        final rawMessage = data['message'];
+        if (rawMessage is String) {
+          serverMessage = rawMessage;
+        } else if (rawMessage is List) {
+          serverMessage = rawMessage.join('; ');
+        }
+      }
+      
+      switch (statusCode) {
+        case 401:
+          return 'انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول';
+        case 403:
+          if (serverMessage?.contains('suspended') == true) {
+            return 'حسابك معلق، يرجى التواصل مع الدعم';
+          }
+          if (serverMessage?.contains('document') == true || serverMessage?.contains('Documents') == true) {
+            return 'يجب التحقق من المستندات أولاً قبل الاتصال';
+          }
+          if (serverMessage?.contains('vehicle') == true || serverMessage?.contains('Vehicle') == true) {
+            return 'يجب اعتماد المركبة أولاً قبل الاتصال';
+          }
+          return 'غير مصرح بهذا الإجراء';
+        case 404:
+          return 'لم يتم العثور على ملف السائق، سيتم إنشاؤه تلقائياً';
+        case 429:
+          return 'طلبات كثيرة جداً، يرجى المحاولة لاحقاً';
+        case 500:
+          return 'خطأ في الخادم، يرجى المحاولة لاحقاً';
+        case null:
+          if (error.type == DioExceptionType.connectionTimeout ||
+              error.type == DioExceptionType.sendTimeout ||
+              error.type == DioExceptionType.receiveTimeout) {
+            return 'انتهت مهلة الاتصال، تحقق من الإنترنت';
+          }
+          if (error.type == DioExceptionType.connectionError) {
+            return 'لا يوجد اتصال بالإنترنت';
+          }
+          return 'خطأ في الاتصال بالخادم';
+        default:
+          return serverMessage ?? 'حدث خطأ غير متوقع';
+      }
+    }
+    return error.toString();
+  }
+
   /// Go online - POST /drivers/online with current GPS
-  /// Starts GPS tracking service and joins dispatch room
+  /// If driver profile doesn't exist (404), auto-create it and retry
   Future<void> goOnline() async {
     if (state.isOnline) return;
 
@@ -172,7 +226,7 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
       if (position == null) {
         state = state.copyWith(
           isLoading: false,
-          error: 'Unable to get current location. Please enable GPS and grant location permission.',
+          error: 'لا يمكن الحصول على الموقع الحالي. يرجى تفعيل GPS ومنح إذن الموقع',
         );
         return;
       }
@@ -188,12 +242,52 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
 
       // Tell server the driver is online with current GPS
       final apiClient = _ref.read(nestjsApiClientProvider);
-      await apiClient.setDriverOnline(
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-        heading: currentLocation.heading,
-        accuracy: currentLocation.accuracy,
-      );
+      
+      try {
+        await apiClient.setDriverOnline(
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+          heading: currentLocation.heading,
+          accuracy: currentLocation.accuracy,
+        );
+      } on DioException catch (e) {
+        // If 404 - driver profile not found, auto-create it and retry
+        if (e.response?.statusCode == 404) {
+          try {
+            await apiClient.createDriverProfile(
+              isAvailable: true,
+              vehicle: {
+                'name': 'Default Vehicle',
+                'plateNumber': 'TEMP',
+                'type': 'SEDAN',
+                'color': 'White',
+                'model': 'Standard',
+                'year': '2024',
+                'seats': 4,
+              },
+            );
+            // Retry going online after profile creation
+            await apiClient.setDriverOnline(
+              latitude: currentLocation.latitude,
+              longitude: currentLocation.longitude,
+              heading: currentLocation.heading,
+              accuracy: currentLocation.accuracy,
+            );
+          } catch (profileError) {
+            // If profile creation also fails, show appropriate error
+            throw profileError;
+          }
+        } else if (e.response?.statusCode == 401) {
+          // Token expired - clear auth data and show message
+          state = state.copyWith(
+            isLoading: false,
+            error: 'انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول',
+          );
+          return;
+        } else {
+          rethrow;
+        }
+      }
 
       // Start real-time position stream
       _startPositionStream();
@@ -212,180 +306,104 @@ class DriverHomeNotifier extends StateNotifier<DriverHomeState> {
         isOnline: true,
         currentLocation: currentLocation,
         heading: currentLocation.heading,
-        isTrackingLocation: true,
         isLoading: false,
         wentOnlineAt: DateTime.now(),
-        onlineDuration: Duration.zero,
+        error: null,
+      );
+    } on DioException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: _extractErrorMessage(e),
       );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
-      );
-    }
-  }
-
-  /// Start listening to GPS position stream for real-time tracking
-  void _startPositionStream() {
-    _stopPositionStream();
-
-    const locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 5, // Minimum 5 meters between updates
-    );
-
-    _positionStreamSubscription = Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    ).listen(_handlePositionUpdate);
-  }
-
-  /// Stop the position stream
-  void _stopPositionStream() {
-    _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = null;
-  }
-
-  /// Handle position update from GPS stream
-  void _handlePositionUpdate(Position position) {
-    final locationPoint = LocationPoint(
-      latitude: position.latitude,
-      longitude: position.longitude,
-      accuracy: position.accuracy,
-      heading: position.heading,
-      speed: position.speed,
-      timestamp: DateTime.now(),
-    );
-
-    // Update state with new location and heading
-    state = state.copyWith(
-      currentLocation: locationPoint,
-      heading: position.heading,
-    );
-
-    // Send location update via Socket.IO immediately for real-time tracking
-    if (state.isOnline) {
-      final socketService = _ref.read(driverSocketServiceProvider);
-      socketService.emitDriverLocation(
-        tripId: '',
-        latitude: locationPoint.latitude,
-        longitude: locationPoint.longitude,
-        heading: locationPoint.heading,
-        speed: locationPoint.speed,
-        accuracy: locationPoint.accuracy,
+        error: _extractErrorMessage(e),
       );
     }
   }
 
   /// Go offline - POST /drivers/offline
-  /// Stops GPS tracking service and leaves dispatch room
-  /// IMPORTANT: Stop timers/streams BEFORE calling API to prevent race condition
-  /// where location updates hit the server after it sets status=OFFLINE (400 error)
   Future<void> goOffline() async {
     if (!state.isOnline) return;
 
     state = state.copyWith(isLoading: true, error: null);
 
-    // Stop ALL location sources FIRST to prevent race condition
-    // where updates hit server after status changes to OFFLINE
-    _stopPositionStream();
-    _stopLocationUpdateTimer();
-    _stopOnlineDurationTimer();
-
-    // Mark as offline locally to prevent any remaining in-flight updates
-    state = state.copyWith(
-      isOnline: false,
-      isTrackingLocation: false,
-    );
-
     try {
       final apiClient = _ref.read(nestjsApiClientProvider);
       await apiClient.setDriverOffline();
 
-      // Stop dispatch listening
+      _stopPositionStream();
+      _stopLocationUpdateTimer();
+      _stopOnlineDurationTimer();
+
       final dispatchNotifier = _ref.read(dispatchProvider.notifier);
       dispatchNotifier.stopListening();
 
       state = state.copyWith(
+        isOnline: false,
+        isTrackingLocation: false,
         isLoading: false,
-        currentLocation: null,
-        heading: 0,
+        onlineDuration: Duration.zero,
         wentOnlineAt: null,
-        onlineDuration: null,
+        error: null,
       );
-    } catch (e) {
-      // Even if API call fails, keep local state as offline
-      // to prevent further location updates
+    } on DioException catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
-        currentLocation: null,
-        heading: 0,
-        wentOnlineAt: null,
-        onlineDuration: null,
+        error: _extractErrorMessage(e),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: _extractErrorMessage(e),
       );
     }
   }
 
-  /// Update driver location - POST /drivers/location
-  /// Called periodically when online AND on significant location changes
-  Future<void> updateLocation({
-    required double latitude,
-    required double longitude,
-    double? heading,
-    double? speed,
-    double? accuracy,
-  }) async {
-    if (!state.isOnline) return;
+  /// Start watching GPS position stream
+  void _startPositionStream() {
+    _stopPositionStream();
 
-    try {
-      final apiClient = _ref.read(nestjsApiClientProvider);
-
-      // Send to REST API for persistence
-      await apiClient.updateDriverLocation(
-        latitude: latitude,
-        longitude: longitude,
-        heading: heading,
-        speed: speed,
-        accuracy: accuracy,
+    _positionStreamSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      ),
+    ).listen((Position position) {
+      final newLocation = LocationPoint(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        accuracy: position.accuracy,
+        heading: position.heading,
+        speed: position.speed,
+        timestamp: DateTime.now(),
       );
 
-      // Also send via Socket.IO for real-time tracking
-      final socketService = _ref.read(driverSocketServiceProvider);
-      socketService.emitDriverLocation(
-        tripId: '', // Empty when not on a trip
-        latitude: latitude,
-        longitude: longitude,
-        heading: heading,
-        speed: speed,
-        accuracy: accuracy,
-      );
-
-      // Update local state with new location
       state = state.copyWith(
-        currentLocation: LocationPoint(
-          latitude: latitude,
-          longitude: longitude,
-          accuracy: accuracy ?? 0,
-          heading: heading ?? 0,
-          speed: speed ?? 0,
-          timestamp: DateTime.now(),
-        ),
-        heading: heading ?? state.heading,
+        currentLocation: newLocation,
+        heading: position.heading,
       );
-    } catch (e) {
-      // Don't update error state for location failures to avoid UI flicker
-      // Location updates are best-effort
-    }
+    });
+
+    state = state.copyWith(isTrackingLocation: true);
   }
 
-  /// Start periodic location update timer
-  /// Sends location to REST API every 5 seconds for server-side persistence
+  /// Stop GPS position stream
+  void _stopPositionStream() {
+    _positionStreamSubscription?.cancel();
+    _positionStreamSubscription = null;
+  }
+
+  /// Start periodic location update timer (sends to server every 5 seconds)
   void _startLocationUpdateTimer() {
     _stopLocationUpdateTimer();
 
     _locationUpdateTimer = Timer.periodic(_locationUpdateInterval, (_) {
       if (state.isOnline && state.currentLocation != null) {
-        updateLocation(
+        // Send location update via API
+        final apiClient = _ref.read(nestjsApiClientProvider);
+        apiClient.updateDriverLocation(
           latitude: state.currentLocation!.latitude,
           longitude: state.currentLocation!.longitude,
           heading: state.currentLocation!.heading,
@@ -486,3 +504,35 @@ final nearbyStatsProvider = Provider<NearbyStats>((ref) {
   final homeState = ref.watch(driverHomeProvider);
   return homeState.nearbyStats;
 });
+
+/// Vehicle input model for profile creation
+class VehicleInput {
+  final String name;
+  final String plateNumber;
+  final String type;
+  final String? color;
+  final String? model;
+  final String? year;
+  final int? seats;
+
+  const VehicleInput({
+    required this.name,
+    required this.plateNumber,
+    required this.type,
+    this.color,
+    this.model,
+    this.year,
+    this.seats,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'plateNumber': plateNumber,
+    'type': type,
+    if (color != null) 'color': color,
+    if (model != null) 'model': model,
+    if (year != null) 'year': year,
+    if (seats != null) 'seats': seats,
+  };
+}
+

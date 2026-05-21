@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:1026243871590:android:4fbac61d2286ba51997ea7",
         "android_client_info": {
-          "package_name": "dev.hyderali.ridewithus"
+          "package_name": "com.madar.driver"
         }
       },
       "oauth_client": [
@@ -34,7 +34,7 @@
               "client_id": "1026243871590-9dmnpidl9ilk55da29mu55tna512chfo.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "dev.hyderali.ridewithus"
+                "bundle_id": "com.madar.driver"
               }
             }
           ]
@@ -45,7 +45,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:1026243871590:android:a7994a12e9d25be7997ea7",
         "android_client_info": {
-          "package_name": "dev.hyderali.trippo_driver"
+          "package_name": "com.madar.driver"
         }
       },
       "oauth_client": [
@@ -70,7 +70,7 @@
               "client_id": "1026243871590-9dmnpidl9ilk55da29mu55tna512chfo.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "dev.hyderali.ridewithus"
+                "bundle_id": "com.madar.driver"
               }
             }
           ]
@@ -81,7 +81,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:1026243871590:android:8883399b5228ee2a997ea7",
         "android_client_info": {
-          "package_name": "dev.hyderali.trippo_user"
+          "package_name": "com.madar.driver"
         }
       },
       "oauth_client": [
@@ -106,7 +106,7 @@
               "client_id": "1026243871590-9dmnpidl9ilk55da29mu55tna512chfo.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "dev.hyderali.ridewithus"
+                "bundle_id": "com.madar.driver"
               }
             }
           ]

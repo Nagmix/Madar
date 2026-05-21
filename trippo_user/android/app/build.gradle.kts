@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.hyderali.trippo_user"
+    namespace = "com.madar.user"
     compileSdk = 36
 
     compileOptions {
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.hyderali.trippo_user"
+        applicationId = "com.madar.user"
         minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = flutter.versionCode
